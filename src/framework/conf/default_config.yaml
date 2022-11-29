@@ -1,0 +1,44 @@
+---
+# This is the default configuration file which will be merged with file passed
+# by:
+#
+# * --ocp4mcoci-conf file.yaml parameter.
+#
+# Each section in this file will be available as an attribute of the
+# framework.conf object.
+#
+# ------------------------------------------------------------------------
+
+# in this RUN section we will keep default parameters for run of ocp4-mco-ci
+RUN:
+  log_dir: "/tmp"
+  kubeconfig_location: 'auth/kubeconfig' # relative from cluster_dir
+  username: 'kubeadmin'
+  password_location: 'auth/kubeadmin-password'
+
+# In this section we are storing all deployment related configuration but not
+# the environment related data as those are defined in ENV_DATA section.
+DEPLOYMENT:
+  # if the installer version ends with .nightly, the version will be exposed
+  # to the latest accepted OCP nightly build version. You can also use the
+  # specific build version like: "4.2.0-0.nightly-2019-08-06-195545"
+  installer_version: "4.12.0-0.nightly"
+  force_download_installer: True
+  force_download_client: True
+  skip_download_client: False
+  default_latest_tag: 'latest-stable-4.12'
+
+# This is the default information about environment.
+ENV_DATA:
+  cluster_name: null  # will be changed in ocscilib plugin
+  platform: 'AWS'
+  region: 'us-east-2'
+  master_instance_type: 'm4.xlarge'
+  worker_instance_type: 'm5.4xlarge'
+
+# All Multicluster stuff here
+MULTICLUSTER:
+  # Index of this cluster Config in a list of cluster Configs
+  multicluster_index: 0
+  acm_cluster: False
+  primary_cluster: False
