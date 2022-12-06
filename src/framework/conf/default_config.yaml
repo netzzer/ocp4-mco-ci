@@ -12,9 +12,8 @@
 # in this RUN section we will keep default parameters for run of ocp4-mco-ci
 RUN:
   run_id: null  # this will be redefined in the execution
-  cluster_path: "/tmp"
   bin_dir: './bin'
-  log_dir: "/tmp/log" # relative from cluster_dir
+  log_level: "INFO"
   kubeconfig_location: 'auth/kubeconfig' # relative from cluster_dir
   username: 'kubeadmin' # default user
   password_location: 'auth/kubeadmin-password' # relative from cluster_dir
@@ -29,20 +28,22 @@ DEPLOYMENT:
   # to the latest accepted OCP nightly build version. You can also use the
   # specific build version like: "4.2.0-0.nightly-2019-08-06-195545"
   installer_version: "4.11.2"
-  force_download_installer: false
+  force_download_installer: true
   force_download_client: true
   skip_download_client: false
-  ssh_key: ""
-  ssh_key_private: ""
+  ssh_key: "~/.ssh/openshift-dev.pub"
+  ssh_key_private: "~/.ssh/openshift-dev.pem"
+  ocp_mirror_url: "https://openshift-release-artifacts.apps.ci.l2s4.p1.openshiftapps.com"
 
 # This is the default information about environment.
 ENV_DATA:
   # OCP
   cluster_name: 'odf-cluster'
+  cluster_path: "/tmp/odf-cluster"
   platform: 'AWS'
   region: 'us-east-1'
-  master_instance_type: 'm4.xlarge'
-  worker_instance_type: 'm5.4xlarge'
+  master_instance_type: 'm4.2xlarge'
+  worker_instance_type: 'm5.2xlarge'
   master_replicas: 3
   worker_replicas: 3
   skip_ocp_deployment: false
@@ -71,5 +72,5 @@ REPORTING:
   email:
     address: "ocpclusterbot@gmail.com"
     smtp_server: "smtp.gmail.com"
-    smtp_port: 465,
-    skip_notification: false  # enable this skip email notification
+    smtp_port: 465
+    recipients: '' # comma separated email ids without space

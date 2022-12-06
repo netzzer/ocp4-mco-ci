@@ -7,11 +7,11 @@ class UnSupportedPlatformException(Exception):
 class UnsupportedOSType(Exception):
     pass
 
-class CommandFailed(Exception):
-    pass
-
 class ClientDownloadError(Exception):
     pass
 
 class PullSecretNotFoundException(Exception):
+    pass
+
+class EmailPasswordNotFoundException(Exception):
     pass

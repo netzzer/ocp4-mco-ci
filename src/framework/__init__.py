@@ -125,13 +125,12 @@ class MultiClusterConfig:
         # Index for current cluster in context
         self.cur_index = 0
         self.multicluster = False
-        # A list of lists which holds CLI args clusterwise
-        self.multicluster_args = list()
-        self.multicluster_common_args = list()
         # Points to cluster conf objects which holds ACM cluster conf
         # Applicable only if we are deploying ACM cluster
         self.acm_index = None
         self.single_cluster_default = True
+        # List of  OCP cluster up and running
+        self.available_ocp_cluster_ctx_list = []
         self._single_cluster_init_cluster_configs()
 
     @property

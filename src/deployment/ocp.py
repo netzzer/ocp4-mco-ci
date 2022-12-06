@@ -3,45 +3,38 @@ import logging
 import json
 import yaml
 
+from src.framework import config
 from src.utility import utils
 from src.utility import constants
 from src.exceptions.ocp_exceptions import PullSecretNotFoundException
-from src.utility.defaults import (
-    DEFAULT_PLATFORM,
-    DEFAULT_CLUSTER_NAME,
-    DEFAULT_CLUSTER_PATH,
-)
+from  src.exceptions.cmd_exceptions import CommandFailed
 from src.utility import templating
 
 logger = logging.getLogger(__name__)
 
 class OCPDeployment():
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, cluster_name, cluster_path):
+        self.cluster_name = cluster_name
+        self.cluster_path = cluster_path
+        self.installer_binary_path = ''
 
-    def deploy_ocp(self, log_cli_level="DEBUG"):
+    def deploy_prereq(self):
         """
                 Destroy OCP cluster specific
                 Args:
                     log_level (str): log level openshift-installer (default: DEBUG)
         """
-        if not self.config.ENV_DATA.get("skip_ocp_deployment", True):
-            # download openshift installer
-            installer_binary_path = self.download_installer()
-
-            # create config
-            cluster_install_path = self.create_config()
-
-            # deploy cluster
-            self.deploy(log_cli_level, installer_binary_path, cluster_install_path)
+        # download openshift installer
+        self.installer_binary_path = self.download_installer()
+        # create config
+        self.create_config()
 
 
     def download_installer(self):
         return utils.download_installer(
-            version=self.config.DEPLOYMENT["installer_version"],
-            bin_dir=self.config.RUN["bin_dir"],
-            force_download=self.config.DEPLOYMENT["force_download_installer"],
-            config=self.config
+            version=config.DEPLOYMENT["installer_version"],
+            bin_dir=config.RUN["bin_dir"],
+            force_download=config.DEPLOYMENT["force_download_installer"]
         )
 
     def get_pull_secret(self):
@@ -68,7 +61,7 @@ class OCPDeployment():
         Returns:
             str: public ssh key or empty string if not found
         """
-        ssh_key = os.path.expanduser(self.config.DEPLOYMENT.get("ssh_key"))
+        ssh_key = os.path.expanduser(config.DEPLOYMENT.get("ssh_key"))
         if not os.path.isfile(ssh_key):
             return ""
         with open(ssh_key, "r") as fs:
@@ -79,10 +72,7 @@ class OCPDeployment():
         """
             Create the OCP deploy config
         """
-        deployment_platform = self.config.ENV_DATA["platform"] or DEFAULT_PLATFORM
-        cluster_name = self.config.ENV_DATA["cluster_name"] or DEFAULT_CLUSTER_NAME
-        cluster_path = self.config.RUN["cluster_path"] or DEFAULT_CLUSTER_PATH
-        cluster_install_path = os.path.join(cluster_path, cluster_name)
+        deployment_platform = config.ENV_DATA["platform"]
         # Generate install-config from template
         logger.info("Generating install-config")
         _templating = templating.Templating()
@@ -91,7 +81,7 @@ class OCPDeployment():
         )
         ocp_install_template_path = os.path.join("ocp-deployment", ocp_install_template)
         install_config_str = _templating.render_template(
-            ocp_install_template_path, self.config.ENV_DATA
+            ocp_install_template_path, config.ENV_DATA
         )
         # Log the install config *before* adding the pull secret,
         # so we don't leak sensitive data.
@@ -103,20 +93,27 @@ class OCPDeployment():
         if ssh_key:
             install_config_obj["sshKey"] = ssh_key
         install_config_str = yaml.safe_dump(install_config_obj)
-        install_config_path = os.path.join(cluster_install_path, "install-config.yaml")
+        install_config_path = os.path.join(self.cluster_path, "install-config.yaml")
         # create cluster directory
-        os.mkdir(cluster_install_path)
-        logger.info(f"Install directory: {cluster_install_path} is created successfully")
+        os.mkdir(self.cluster_path)
+        logger.info(f"Install directory: {self.cluster_path} is created successfully")
         with open(install_config_path, "w") as f:
             f.write(install_config_str)
-        return cluster_install_path
 
-    def deploy(self, log_cli_level="DEBUG", installer_binary_path="", cluster_install_path=""):
-        utils.exec_cmd(
-            cmd="{bin_dir} create cluster --dir {cluster_dir} --log-level={log_level}".format(
-                bin_dir=installer_binary_path,
-                cluster_dir=cluster_install_path,
-                log_level=log_cli_level
-            ),
-            timeout=3600,
-        )
+    @staticmethod
+    def deploy_ocp(installer_binary_path, cluster_path, log_cli_level="INFO"):
+        # Do not access framework.config directly inside deploy_ocp, it is not thread safe
+        try:
+            utils.exec_cmd(
+                cmd="{bin_dir} create cluster --dir {cluster_dir} --log-level={log_level}".format(
+                    bin_dir=installer_binary_path,
+                    cluster_dir=cluster_path,
+                    log_level=log_cli_level
+                ),
+                timeout=3600,
+            )
+        except CommandFailed as ex:
+            logger.error("Unable to deploy ocp cluster.")
+
+
+

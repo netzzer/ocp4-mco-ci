@@ -3,21 +3,29 @@ import json
 import logging
 import os
 import platform
-import shlex
-import subprocess
+import copy
+import smtplib
 
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+from bs4 import BeautifulSoup
 from semantic_version import Version
-from src.utility.defaults import (
-    DEFAULT_BIN_DIR,
-    DEFAULT_INSTALLER_VERSION,
-    DEFAULT_OPENSHIFT_CLIENT_VERSION
+
+from src.framework import config
+from src.utility.constants import (
+    TEMPLATE_DIR,
+    TOP_DIR
 )
 from src.exceptions.ocp_exceptions import (
     UnsupportedOSType,
-    CommandFailed,
-    ClientDownloadError
-)
+    ClientDownloadError,
+    EmailPasswordNotFoundException
 
+)
+from src.exceptions.cmd_exceptions import CommandFailed
+from src.utility.cmd import exec_cmd
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +33,10 @@ logger = logging.getLogger(__name__)
 def download_installer(
     version=None,
     bin_dir=None,
-    force_download=False,
-    config=None
+    force_download=False
 ):
-    version = version or DEFAULT_INSTALLER_VERSION
-    bin_dir = bin_dir or DEFAULT_BIN_DIR
+    version = version or config.DEPLOYMENT["installer_version"]
+    bin_dir = os.path.expanduser(bin_dir or config.RUN["bin_dir"])
     installer_filename = "openshift-install"
     installer_binary_path = os.path.join(bin_dir, installer_filename)
     if os.path.isfile(installer_binary_path) and force_download:
@@ -40,12 +47,12 @@ def download_installer(
     else:
         version = expose_ocp_version(version)
         logger.info(f"Downloading openshift installer ({version}).")
-        prepare_bin_dir(config=config)
+        prepare_bin_dir()
         # record current working directory and switch to BIN_DIR
         previous_dir = os.getcwd()
         os.chdir(bin_dir)
         tarball = f"{installer_filename}.tar.gz"
-        url = get_openshift_mirror_url(installer_filename, version, config)
+        url = get_openshift_mirror_url(installer_filename, version)
         download_file(url, tarball)
         exec_cmd(f"tar xzvf {tarball} {installer_filename}")
         delete_file(tarball)
@@ -58,7 +65,7 @@ def download_installer(
 
 
 def get_openshift_client(
-    version=None, bin_dir=None, force_download=False, skip_comparison=False, config=None
+    version=None, bin_dir=None, force_download=False, skip_comparison=False
 ):
     """
     Download the OpenShift client binary, if not already present.
@@ -73,13 +80,13 @@ def get_openshift_client(
     Returns:
         str: Path to the client binary
     """
-    version = version or DEFAULT_OPENSHIFT_CLIENT_VERSION
-    bin_dir = os.path.expanduser(config.RUN["bin_dir"] or DEFAULT_BIN_DIR)
+    version = version or config.RUN["client_version"]
+    bin_dir = os.path.expanduser(bin_dir or config.RUN["bin_dir"])
     client_binary_path = os.path.join(bin_dir, "oc")
     download_client = True
     client_version = None
     try:
-        version = expose_ocp_version(version, config)
+        version = expose_ocp_version(version)
     except Exception:
         logger.exception("Unable to expose OCP version, skipping client download.")
         skip_comparison = True
@@ -111,11 +118,11 @@ def get_openshift_client(
 
         # Download the client
         logger.info(f"Downloading openshift client ({version}).")
-        prepare_bin_dir(config=config)
+        prepare_bin_dir()
         # record current working directory and switch to BIN_DIR
         previous_dir = os.getcwd()
         os.chdir(bin_dir)
-        url = get_openshift_mirror_url("openshift-client", version, config)
+        url = get_openshift_mirror_url("openshift-client", version)
         tarball = "openshift-client.tar.gz"
         download_file(url, tarball)
         exec_cmd(f"tar xzvf {tarball} oc kubectl")
@@ -148,7 +155,7 @@ def get_openshift_client(
     return client_binary_path
 
 
-def expose_ocp_version(version, config=None):
+def expose_ocp_version(version):
     """
         This helper function exposes latest nightly version or GA version of OCP.
         When the version string ends with .nightly (e.g. 4.2.0-0.nightly) it will
@@ -233,7 +240,7 @@ def delete_file(file_name):
     """
     os.remove(file_name)
 
-def prepare_bin_dir(bin_dir=None, config=None):
+def prepare_bin_dir(bin_dir=None):
     """
     Prepare bin directory for OpenShift client and installer
     Args:
@@ -246,7 +253,7 @@ def prepare_bin_dir(bin_dir=None, config=None):
     except FileExistsError:
         logger.debug(f"Directory '{bin_dir}' already exists.")
 
-def get_openshift_mirror_url(file_name, version, config=None):
+def get_openshift_mirror_url(file_name, version):
     """
     Format url to OpenShift mirror (for client and installer download).
     Args:
@@ -264,16 +271,16 @@ def get_openshift_mirror_url(file_name, version, config=None):
         os_type = "linux"
     else:
         raise UnsupportedOSType
-    url_template = config.DEPLOYMENT.get(
-        "ocp_url_template",
-        "https://openshift-release-artifacts.apps.ci.l2s4.p1.openshiftapps.com/"
-        "{version}/{file_name}-{os_type}-{version}.tar.gz",
+    url_template = os.path.join(
+        config.DEPLOYMENT.get("ocp_mirror_url", ""),
+        "{version}/{file_name}-{os_type}-{version}.tar.gz"
     )
     url = url_template.format(
         version=version,
         file_name=file_name,
         os_type=os_type,
     )
+    logger.info(f"openshift installer url: {url}")
     return url
 
 def download_file(url, filename, **kwargs):
@@ -289,78 +296,6 @@ def download_file(url, filename, **kwargs):
         r = requests.get(url, **kwargs)
         assert r.ok, f"The URL {url} is not available! Status: {r.status_code}."
         f.write(r.content)
-
-
-def exec_cmd(
-    cmd,
-    timeout=600,
-    ignore_error=False,
-    threading_lock=None,
-    silent=False,
-    **kwargs,
-):
-    """
-        Run an arbitrary command locally
-        If the command is grep and matching pattern is not found, then this function
-        returns "command terminated with exit code 1" in stderr.
-        Args:
-            cmd (str): command to run
-            timeout (int): Timeout for the command, defaults to 600 seconds.
-            ignore_error (bool): True if ignore non zero return code and do not
-                raise the exception.
-            threading_lock (threading.Lock): threading.Lock object that is used
-                for handling concurrent oc commands
-            silent (bool): If True will silent errors from the server, default false
-        Raises:
-            CommandFailed: In case the command execution fails
-        Returns:
-            (CompletedProcess) A CompletedProcess object of the command that was executed
-            CompletedProcess attributes:
-            args: The list or str args passed to run().
-            returncode (str): The exit code of the process, negative for signals.
-            stdout     (str): The standard output (None if not captured).
-            stderr     (str): The standard error (None if not captured).
-    """
-
-    logger.info(f"Executing command: {cmd}")
-    if isinstance(cmd, str):
-        cmd = shlex.split(cmd)
-    if threading_lock and cmd[0] == "oc":
-        threading_lock.acquire()
-    completed_process = subprocess.run(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        stdin=subprocess.PIPE,
-        timeout=timeout,
-        **kwargs,
-    )
-    if threading_lock and cmd[0] == "oc":
-        threading_lock.release()
-    stdout = completed_process.stdout.decode()
-    stdout_err = completed_process.stderr.decode()
-    if len(completed_process.stdout) > 0:
-        logger.debug(f"Command stdout: {stdout}")
-    else:
-        logger.debug("Command stdout is empty")
-    if len(completed_process.stderr) > 0:
-        if not silent:
-            logger.warning(f"Command stderr: {stdout_err}")
-    else:
-        logger.debug("Command stderr is empty")
-    logger.debug(f"Command return code: {completed_process.returncode}")
-    if completed_process.returncode and not ignore_error:
-        if (
-                "grep" in cmd
-                and b"command terminated with exit code 1" in completed_process.stderr
-        ):
-            logger.info(f"No results found for grep command: {cmd}")
-        else:
-            raise CommandFailed(
-                f"Error during execution of command: {cmd}."
-                f"\nError is {stdout_err}"
-            )
-    return completed_process
 
 def get_client_version(client_binary_path):
     """
@@ -378,7 +313,7 @@ def get_client_version(client_binary_path):
         return stdout["releaseClientVersion"]
 
 
-def ocp4mcoci_log_path(config=None):
+def ocp4mcoci_log_path():
     """
     Construct the full path for the log directory.
     Returns:
@@ -409,3 +344,134 @@ def create_directory_path(path):
         os.makedirs(path)
     else:
         logger.debug(f"{path} already exists")
+
+def is_cluster_running(cluster_path):
+    from src.utility.openshift_ops import OpenshiftOps
+
+    return OpenshiftOps.set_kubeconfig(
+        os.path.join(cluster_path, config.RUN.get("kubeconfig_location"))
+    )
+
+
+def get_email_pass():
+    email_pass_path = os.path.join(TOP_DIR, "data", "email_pass")
+    is_exist = os.path.exists(email_pass_path)
+    if not is_exist:
+        raise EmailPasswordNotFoundException(
+            f"Email password does not exists on path: {email_pass_path}."
+        )
+    with open(email_pass_path, "r") as f:
+        # single string
+        return f.read()
+def get_ocp_version(seperator=None):
+    """
+    Get current ocp version
+    Args:
+        seperator (str): String that would seperate major and
+            minor version nubers
+    Returns:
+        string : If seperator is 'None', version string will be returned as is
+            eg: '4.2', '4.3'.
+            If seperator is provided then '.' in the version string would be
+            replaced by seperator and resulting string will be returned.
+            eg: If seperator is '_' then string returned would be '4_2'
+    """
+    char = seperator if seperator else "."
+    if config.ENV_DATA.get("skip_ocp_deployment"):
+        raw_version = json.loads(exec_cmd("oc version -o json"))["openshiftVersion"]
+    else:
+        raw_version = config.DEPLOYMENT["installer_version"]
+    version = Version.coerce(raw_version)
+    return char.join([str(version.major), str(version.minor)])
+
+def email_reports():
+    mailids = config.REPORTING['email']['recipients']
+    if mailids == "":
+        logger.warning("No recipeient mail ids are found, Skipping email notification")
+    recipients = []
+    [recipients.append(mailid) for mailid in mailids.split(",")]
+    sender = "ocpclusterbot@gmail.com"
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = (
+        f"ocp4mco-ci cluster deployment "
+        f"(RUN ID: {config.RUN['run_id']}) "
+    )
+    msg["From"] = sender
+    msg["To"] = ",".join(recipients)
+    html = os.path.join(TEMPLATE_DIR, "result-email-template.html")
+    with open(os.path.expanduser(html)) as fd:
+        html_data = fd.read()
+    soup = BeautifulSoup(html_data, "html.parser")
+    parse_html_for_email(soup)
+    part1 = MIMEText(soup, "html")
+    msg.attach(part1)
+    for i in range(config.nclusters):
+        config.switch_ctx(i)
+        kube_config_path = os.path.join(config.ENV_DATA["cluster_path"], config.RUN["kubeconfig_location"])
+        is_kube_config_exists = os.path.exists(kube_config_path)
+        if is_kube_config_exists:
+            with open(kube_config_path) as fd:
+                part2 = MIMEBase('application', "octet-stream")
+                part2.set_payload(fd.read())
+                encoders.encode_base64(part2)
+                part2.add_header(
+                    'Content-Disposition', 'attachment; filename="kubeconfig_%s"' % config.ENV_DATA["cluster_name"]
+                )
+                msg.attach(part2)
+    config.switch_default_cluster_ctx()
+    try:
+        s = smtplib.SMTP_SSL(
+            config.REPORTING["email"]["smtp_server"],
+            config.REPORTING["email"]["smtp_port"],
+        )
+        s.ehlo()
+        s.login(
+            sender,
+            get_email_pass(),
+        )
+        s.sendmail(sender, recipients, msg.as_string())
+        s.quit()
+        logger.info(f"Results have been emailed to {recipients}")
+    except Exception:
+        logger.exception("Sending email with results failed!")
+
+def parse_html_for_email(soup):
+    div = soup.find("div")
+    table_template = copy.deepcopy(soup.find("table"))
+    soup.find("table").clear()
+    for i in range(config.nclusters):
+        config.switch_ctx(i)
+        table = copy.deepcopy(table_template)
+        rows = table.findAll('tr')
+        for row in rows:
+            column_header = row.find('th')
+            column = row.find('td')
+            if column_header.string == "Cluster name":
+                column.string = config.ENV_DATA["cluster_name"]
+            if column_header.string == "Username":
+                column.string = config.RUN["username"]
+            if column_header.string == "Password":
+                auth_file_path = config.RUN["password_location"]
+                auth_file_full_path = os.path.join(config.ENV_DATA["cluster_path"], auth_file_path)
+                is_password_exist = os.path.exists(auth_file_full_path)
+                if is_password_exist:
+                    with open(os.path.expanduser(auth_file_full_path)) as fd:
+                        column.string = fd.read()
+                else:
+                    column.string = ""
+            if column_header.string == "Cluster role":
+                column.string = 'ACM Cluster' if config.MULTICLUSTER["acm_cluster"] else 'Non-ACM Cluster'
+            if column_header.string == "URL":
+                column.string = f"https://console-openshift-console.apps.{config.ENV_DATA['cluster_name']}.{config.ENV_DATA['base_domain']}"
+            if column_header.string == "OCP cluster status":
+                p_tag = column.find("p")
+                status = 'Available' if i in config.available_ocp_cluster_ctx_list else 'Not Available'
+                p_tag.string = status
+                p_tag['style'] = "color: green;" if status == 'Available' else "color: red;"
+            if column_header.string == "OCP cluster version":
+                column.string = get_ocp_version()
+
+        div.insert(i, table)
+    config.switch_default_cluster_ctx()
+
+

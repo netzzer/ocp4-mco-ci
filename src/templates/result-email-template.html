@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <style>
+    table{
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+        margin-bottom: 25px;
+    }
+
+    td, th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+
+    td, th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+    </style>
+</head>
+<body>
+    <h2>OCP Cluster Information</h2>
+    <div>
+        <table class="table">
+            <tr>
+                <th>Cluster name</th>
+                <td>{{ clustername }}</td>
+            </tr>
+            <tr>
+                <th>Username</th>
+                <td>{{ username }}</td>
+            </tr>
+            <tr>
+                <th>Password</th>
+                <td>{{ password }}</td>
+            </tr>
+            <tr>
+                <th>Cluster role</th>
+                <td>{{ cluster_role }}</td>
+            </tr>
+             <tr>
+                <th>URL</th>
+                <td>{{ url }}</td>
+            </tr>
+            <tr>
+                <th>OCP cluster status</th>
+                <td>
+                    <p>{{ ocp_cluster_status }}</p>
+                </td>
+            </tr>
+             <tr>
+                <th>OCP cluster version</th>
+                <td>{{ ocp_cluster_version }}</td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

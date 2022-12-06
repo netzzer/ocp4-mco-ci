@@ -8,7 +8,7 @@ import time
 from src import framework
 from src.exceptions.ocp_exceptions import UnSupportedPlatformException
 from src.utility import utils
-from src.deployment.deployment import Deployment
+from src.framework.deployment import Deployment
 
 
 def check_config_requirements():
@@ -59,21 +59,12 @@ def init_ocp4mcoci_conf(arguments=None):
         )
         args, _ = parser.parse_known_args(arguments)
         init_multicluster_ocp4mcoci_conf(arguments, args.nclusters)
-        # After processing the args we will remove everything from list
-        # and add args according to the need in the below block
-        arguments.clear()
-
-        # Preserve only common args and suffixed(cluster number) cluster args in the args list
-        # i.e only --cluster-name1, --cluster-path1, --ocp4mcoci-conf1 etc
-        # common args first
-        for each in framework.config.multicluster_common_args:
-            arguments.extend(each)
-        # Remaining arguments
-        for each in framework.config.multicluster_args:
-            arguments.extend(each)
     else:
         framework.config.init_cluster_configs()
         process_ocp4mcoci_conf(arguments)
+        process_cluster_name_conf(arguments)
+        process_cluster_path_conf(arguments)
+        process_email_recipients(arguments)
         check_config_requirements()
 
 
@@ -114,19 +105,12 @@ def init_multicluster_ocp4mcoci_conf(args, nclusters):
     for index in range(nclusters):
         framework.config.switch_ctx(index)
         process_ocp4mcoci_conf(common_argv + multicluster_conf[index][1:])
-        process_cluster_path_conf(common_argv + multicluster_conf[index][1:])
         process_cluster_name_conf(common_argv + multicluster_conf[index][1:])
-        for arg in range(len(multicluster_conf[index][1:])):
-            if multicluster_conf[index][arg + 1].startswith("--"):
-                multicluster_conf[index][
-                    arg + 1
-                ] = f"{multicluster_conf[index][arg+1]}{index + 1}"
-        framework.config.multicluster_args.append(multicluster_conf[index][1:])
+        process_cluster_path_conf(common_argv + multicluster_conf[index][1:])
+        process_email_recipients(common_argv + multicluster_conf[index][1:])
         check_config_requirements()
-    framework.config.multicluster_common_args.append(common_argv)
     # Set context to default_cluster_context_index
     framework.config.switch_default_cluster_ctx()
-
 
 def tokenize_per_cluster_args(args, nclusters):
     """
@@ -176,28 +160,35 @@ def process_ocp4mcoci_conf(arguments):
 
 def process_cluster_path_conf(arguments):
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--cluster-path", default='/tmp', help='cluster path to store OCP cluster info')
+    parser.add_argument("--cluster-path", default=framework.config.ENV_DATA["cluster_path"])
     args, _ = parser.parse_known_args(args=arguments)
-    framework.config.update({"RUN": {"cluster_path": args.cluster_path}})
+    framework.config.update({"ENV_DATA": {"cluster_path": args.cluster_path}})
 
 def process_cluster_name_conf(arguments):
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--cluster-name", required=True, help='name of the OCP cluster')
+    parser.add_argument("--cluster-name", default=framework.config.ENV_DATA["cluster_name"])
     args, _ = parser.parse_known_args(args=arguments)
     framework.config.update({"ENV_DATA": {"cluster_name": args.cluster_name}})
 
 def process_log_level_arg(arguments):
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--log-cli-level", required=False, default='DEBUG', help='OCP installer log level')
+    parser.add_argument("--log-cli-level", default='INFO', help='OCP installer log level')
     args, _ = parser.parse_known_args(args=arguments)
     return args.log_cli_level
+
+def process_email_recipients(arguments):
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--email-ids", default='INFO', help='recipient email ids')
+    args, _ = parser.parse_known_args(args=arguments)
+    framework.config.update({"REPORTING": {"email": {"recipients": args.email_ids}}})
 
 def main(argv=None):
     arguments = argv or sys.argv[1:]
     init_ocp4mcoci_conf(arguments)
     log_cli_level = process_log_level_arg(arguments)
-    ci_logs_dir = utils.ocp4mcoci_log_path(framework.config)
-    utils.create_directory_path(framework.config.RUN["log_dir"])
-    deployment = Deployment(ci_logs_dir, log_cli_level)
-    deployment.run()
+    deployment = Deployment()
+    # Deploy OCP
+    deployment.deploy_ocp(log_cli_level)
+    # Send email report
+    deployment.send_email()
 
