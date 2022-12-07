@@ -95,7 +95,8 @@ class OCPDeployment():
         install_config_str = yaml.safe_dump(install_config_obj)
         install_config_path = os.path.join(self.cluster_path, "install-config.yaml")
         # create cluster directory
-        os.mkdir(self.cluster_path)
+        if not os.path.exists(self.cluster_path):
+            os.mkdir(self.cluster_path)
         logger.info(f"Install directory: {self.cluster_path} is created successfully")
         with open(install_config_path, "w") as f:
             f.write(install_config_str)
@@ -114,6 +115,3 @@ class OCPDeployment():
             )
         except CommandFailed as ex:
             logger.error("Unable to deploy ocp cluster.")
-
-
-

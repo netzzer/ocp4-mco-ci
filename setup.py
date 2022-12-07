@@ -21,10 +21,12 @@ setup(
         "openshift==0.11.2",
         "requests==2.23.0",
         "bs4==0.0.1",
+        "semantic-version==2.8.5",
     ],
     entry_points={
         "console_scripts": [
             "deploy-ocp=src.framework.deploy_ocp.main:main",
+            "cleanup-ocp=src.cleanup.ocp:cluster_cleanup",
         ],
     },
     zip_safe=False,

@@ -39,7 +39,7 @@ def download_installer(
     bin_dir = os.path.expanduser(bin_dir or config.RUN["bin_dir"])
     installer_filename = "openshift-install"
     installer_binary_path = os.path.join(bin_dir, installer_filename)
-    if os.path.isfile(installer_binary_path) and force_download:
+    if os.path.isfile(installer_binary_path) and force_download and config.cur_index == 0:
         delete_file(installer_binary_path)
     if os.path.isfile(installer_binary_path):
         logger.debug(f"Installer exists ({installer_binary_path}), skipping download.")
@@ -354,7 +354,7 @@ def is_cluster_running(cluster_path):
 
 
 def get_email_pass():
-    email_pass_path = os.path.join(TOP_DIR, "data", "email_pass")
+    email_pass_path = os.path.join(TOP_DIR, "data", "email-pass")
     is_exist = os.path.exists(email_pass_path)
     if not is_exist:
         raise EmailPasswordNotFoundException(
@@ -441,6 +441,8 @@ def parse_html_for_email(soup):
     soup.find("table").clear()
     for i in range(config.nclusters):
         config.switch_ctx(i)
+        username = config.RUN["username"]
+        password = ""
         table = copy.deepcopy(table_template)
         rows = table.findAll('tr')
         for row in rows:
@@ -456,13 +458,16 @@ def parse_html_for_email(soup):
                 is_password_exist = os.path.exists(auth_file_full_path)
                 if is_password_exist:
                     with open(os.path.expanduser(auth_file_full_path)) as fd:
-                        column.string = fd.read()
+                        password = fd.read()
+                        column.string = password
                 else:
                     column.string = ""
             if column_header.string == "Cluster role":
                 column.string = 'ACM Cluster' if config.MULTICLUSTER["acm_cluster"] else 'Non-ACM Cluster'
             if column_header.string == "URL":
                 column.string = f"https://console-openshift-console.apps.{config.ENV_DATA['cluster_name']}.{config.ENV_DATA['base_domain']}"
+            if column_header.string == "Server":
+                column.string = f"https://api.{config.ENV_DATA['cluster_name']}.{config.ENV_DATA['base_domain']}:6443"
             if column_header.string == "OCP cluster status":
                 p_tag = column.find("p")
                 status = 'Available' if i in config.available_ocp_cluster_ctx_list else 'Not Available'
@@ -470,6 +475,8 @@ def parse_html_for_email(soup):
                 p_tag['style'] = "color: green;" if status == 'Available' else "color: red;"
             if column_header.string == "OCP cluster version":
                 column.string = get_ocp_version()
+            if column_header.string == "Login command":
+                column.string = f"oc login https://api.{config.ENV_DATA['cluster_name']}.{config.ENV_DATA['base_domain']}:6443 -u {username} -p {password}"
 
         div.insert(i, table)
     config.switch_default_cluster_ctx()
