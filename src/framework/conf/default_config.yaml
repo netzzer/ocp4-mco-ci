@@ -11,7 +11,6 @@
 
 # in this RUN section we will keep default parameters for run of ocp4-mco-ci
 RUN:
-  run_id: null  # this will be redefined in the execution
   bin_dir: './bin'
   log_level: "INFO"
   kubeconfig_location: 'auth/kubeconfig' # relative from cluster_dir
@@ -47,7 +46,6 @@ ENV_DATA:
   master_replicas: 3
   worker_replicas: 3
   skip_ocp_deployment: false
-  skip_ocs_deployment: false
   base_domain: 'devcluster.openshift.com'
   # The subnet prefix length to assign to each individual node.
   # For example, if hostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr,
@@ -59,6 +57,12 @@ ENV_DATA:
 
   # OCS
   ocs_version: '4.12'
+  skip_ocs_deployment: false
+  # you can overwrite the image for ocs operator catalog source by following parameter:
+  # ocs_registry_image: "quay.io/rhceph-dev/ocs-olm-operator:4.2-32.9b6c93e.master"
+  default_ocs_registry_image: "quay.io/rhceph-dev/ocs-registry:latest-4.12"
+  # You can overwrite csv channel version by following parameter
+  ocs_csv_channel: "stable-4.12"
 
 # All Multicluster stuff here
 MULTICLUSTER:
@@ -70,6 +74,7 @@ MULTICLUSTER:
 # Section for reporting configuration
 REPORTING:
   email:
+    enable_notification: false
     address: "ocpclusterbot@gmail.com"
     smtp_server: "smtp.gmail.com"
     smtp_port: 465

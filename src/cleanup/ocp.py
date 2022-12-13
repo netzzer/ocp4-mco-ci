@@ -6,7 +6,7 @@ import multiprocessing as mp
 from src.utility.constants import BASIC_FORMAT
 from src.framework import config
 from src.utility import utils
-from src.exceptions.cmd_exceptions import CommandFailed
+from src.utility.exceptions  import CommandFailed
 
 logging.basicConfig(format=BASIC_FORMAT, level=logging.DEBUG)
 logger = logging.getLogger(__name__)

@@ -12,7 +12,7 @@ import yaml
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass, field, fields
-from src.exceptions.ocp_exceptions import ClusterNotFoundException
+from src.utility.exceptions import ClusterNotFoundException
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_CONFIG_PATH = os.path.join(THIS_DIR, "conf/default_config.yaml")
@@ -117,6 +117,8 @@ class MultiClusterConfig:
     # This class wraps Config() objects so that we can handle
     # multiple cluster contexts
     def __init__(self):
+        # this will be redefined in the execution
+        self.run_id = ""
         # Holds all cluster's Config() object
         self.clusters = list()
         # This member always points to current cluster's Config() object
@@ -129,8 +131,6 @@ class MultiClusterConfig:
         # Applicable only if we are deploying ACM cluster
         self.acm_index = None
         self.single_cluster_default = True
-        # List of  OCP cluster up and running
-        self.available_ocp_cluster_ctx_list = []
         self._single_cluster_init_cluster_configs()
 
     @property

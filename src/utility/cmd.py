@@ -2,7 +2,7 @@ import shlex
 import subprocess
 import logging
 
-from src.exceptions.cmd_exceptions import CommandFailed
+from src.utility.exceptions import CommandFailed
 
 logger = logging.getLogger(__name__)
 

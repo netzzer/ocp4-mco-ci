@@ -6,7 +6,7 @@ import yaml
 import time
 
 from src import framework
-from src.exceptions.ocp_exceptions import UnSupportedPlatformException
+from src.utility.exceptions import UnSupportedPlatformException
 from src.utility import utils
 from src.framework.deployment import Deployment
 
@@ -44,6 +44,7 @@ def init_ocp4mcoci_conf(arguments=None):
     Args:
         arguments (list): Arguments for pytest execution
     """
+    framework.config.run_id = int(time.time())
     if "multicluster" in arguments:
         parser = argparse.ArgumentParser(add_help=False)
         subparser = parser.add_subparsers(title="subcommand", dest="subcommand")
@@ -150,7 +151,6 @@ def process_ocp4mcoci_conf(arguments):
     parser.add_argument("--ocp4mcoci-conf", action="append", default=[])
     args, _ = parser.parse_known_args(args=arguments)
     load_config(args.ocp4mcoci_conf)
-    framework.config.RUN["run_id"] = int(time.time())
     bin_dir = framework.config.RUN.get("bin_dir")
     if bin_dir:
         framework.config.update({"RUN" : {"bin_dir": os.path.abspath(
@@ -189,6 +189,8 @@ def main(argv=None):
     deployment = Deployment()
     # Deploy OCP
     deployment.deploy_ocp(log_cli_level)
+    # Deploy OCS
+    deployment.deploy_ocs(log_cli_level)
     # Send email report
     deployment.send_email()
 

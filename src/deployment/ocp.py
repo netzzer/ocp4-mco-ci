@@ -6,8 +6,10 @@ import yaml
 from src.framework import config
 from src.utility import utils
 from src.utility import constants
-from src.exceptions.ocp_exceptions import PullSecretNotFoundException
-from  src.exceptions.cmd_exceptions import CommandFailed
+from src.utility.exceptions import (
+    PullSecretNotFoundException,
+    CommandFailed
+)
 from src.utility import templating
 
 logger = logging.getLogger(__name__)
@@ -19,11 +21,6 @@ class OCPDeployment():
         self.installer_binary_path = ''
 
     def deploy_prereq(self):
-        """
-                Destroy OCP cluster specific
-                Args:
-                    log_level (str): log level openshift-installer (default: DEBUG)
-        """
         # download openshift installer
         self.installer_binary_path = self.download_installer()
         # create config
@@ -79,7 +76,7 @@ class OCPDeployment():
         ocp_install_template = (
             f"install-config-{deployment_platform.lower()}.yaml.j2"
         )
-        ocp_install_template_path = os.path.join("ocp-deployment", ocp_install_template)
+        ocp_install_template_path = os.path.join(ocp_install_template)
         install_config_str = _templating.render_template(
             ocp_install_template_path, config.ENV_DATA
         )

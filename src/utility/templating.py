@@ -1,8 +1,13 @@
 import yaml
+import logging
+import yaml
 
 from jinja2 import Environment, FileSystemLoader
 
 from src.utility.constants import TEMPLATE_DIR
+from src.utility.utils import get_url_content
+
+logger = logging.getLogger(__name__)
 
 def to_nice_yaml(a, indent=2, *args, **kw):
     """
@@ -26,6 +31,42 @@ def to_nice_yaml(a, indent=2, *args, **kw):
         **kw,
     )
     return
+
+def load_yaml(file, multi_document=False):
+    """
+    Load yaml file (local or from URL) and convert it to dictionary
+    Args:
+        file (str): Path to the file or URL address
+        multi_document (bool): True if yaml contains more documents
+    Returns:
+        dict: If multi_document == False, returns loaded data from yaml file
+            with one document.
+        generator: If multi_document == True, returns generator which each
+            iteration returns dict from one loaded document from a file.
+    """
+    loader = yaml.safe_load_all if multi_document else yaml.safe_load
+    if file.startswith("http"):
+        return loader(get_url_content(file))
+    else:
+        with open(file, "r") as fs:
+            return loader(fs.read())
+
+def dump_data_to_temp_yaml(data, temp_yaml):
+    """
+    Dump data to temporary yaml file
+    Args:
+        data (dict or list): dict or list (in case of multi_document) with
+            data to dump to the yaml file.
+        temp_yaml (str): file path of yaml file
+    Returns:
+        str: dumped yaml data
+    """
+    dumper = yaml.dump if isinstance(data, dict) else yaml.dump_all
+    yaml_data = dumper(data)
+    with open(temp_yaml, "w") as yaml_file:
+        yaml_file.write(yaml_data)
+    logger.info(yaml_data)
+    return yaml_data
 
 class Templating:
     """

@@ -6,7 +6,7 @@ from kubernetes import config
 
 from src.utility.utils import get_openshift_client
 from src.utility.cmd import exec_cmd
-from src.exceptions.cmd_exceptions import CommandFailed
+from src.utility.exceptions  import CommandFailed
 
 
 log = logging.getLogger(__name__)

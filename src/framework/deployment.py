@@ -3,6 +3,7 @@ import sys
 import multiprocessing as mp
 
 from src.deployment.ocp import OCPDeployment
+from src.deployment.ocs import OCSDeployment
 from src import framework
 from src.framework.logger_factory import set_log_record_factory
 from src.utility.constants import LOG_FORMAT
@@ -33,31 +34,66 @@ class Deployment(object):
         # OCP Deployment
         processes = []
         for i in range(framework.config.nclusters):
-            framework.config.switch_ctx(i)
-            cluster_path = framework.config.ENV_DATA["cluster_path"]
-            cluster_name = framework.config.ENV_DATA["cluster_name"]
-            if not framework.config.ENV_DATA.get("skip_ocp_deployment", True):
-                if is_cluster_running(cluster_path):
-                    log.warning(f"OCP cluster is already running, skipping installation")
+            try:
+                framework.config.switch_ctx(i)
+                cluster_path = framework.config.ENV_DATA["cluster_path"]
+                cluster_name = framework.config.ENV_DATA["cluster_name"]
+                if not framework.config.ENV_DATA.get("skip_ocp_deployment", True):
+                    if is_cluster_running(cluster_path):
+                        log.warning("OCP cluster is already running, skipping installation")
+                    else:
+                        ocpDeployment = OCPDeployment(cluster_name, cluster_path)
+                        ocpDeployment.deploy_prereq()
+                        p = mp.Process(
+                            target=OCPDeployment.deploy_ocp,
+                            args=(ocpDeployment.installer_binary_path, ocpDeployment.cluster_path, log_cli_level,)
+                        )
+                        processes.append(p)
                 else:
-                    ocpDeployment = OCPDeployment(cluster_name, cluster_path)
-                    ocpDeployment.deploy_prereq()
-                    p = mp.Process(
-                        target=OCPDeployment.deploy_ocp,
-                        args=(ocpDeployment.installer_binary_path, ocpDeployment.cluster_path, log_cli_level,)
-                    )
-                    processes.append(p)
+                    log.warning("OCP deployment will be skipped")
+            except Exception:
+                log.error("Unable to deploy OCP cluster !")
         framework.config.switch_default_cluster_ctx()
         if len(processes) > 0:
             [proc.start() for proc in processes]
             # complete the processes
             for proc in processes:
                 proc.join()
+
+    def deploy_ocs(self, log_cli_level):
+        # OCS Deployment
+        processes = []
         for i in range(framework.config.nclusters):
-            framework.config.switch_ctx(i)
-            if is_cluster_running(cluster_path):
-                framework.config.available_ocp_cluster_ctx_list.append(i)
+            try:
+                framework.config.switch_ctx(i)
+                if not framework.config.ENV_DATA["skip_ocs_deployment"]:
+                    if framework.config.multicluster and framework.config.get_acm_index() == i:
+                        continue
+                    ocsDeployment = OCSDeployment()
+                    ocsDeployment.deploy_prereq()
+                    p = mp.Process(
+                        target=OCSDeployment.deploy_ocs,
+                        args=(log_cli_level,)
+                    )
+                    processes.append(p)
+                else:
+                    log.warning("OCS deployment will be skipped")
+            except Exception:
+                log.error("Unable to deploy OCS cluster !")
         framework.config.switch_default_cluster_ctx()
+        if len(processes) > 0:
+            [proc.start() for proc in processes]
+            # complete the processes
+            for proc in processes:
+                proc.join()
+
     def send_email(self):
         # send email notification
-        email_reports()
+        for i in range(framework.config.nclusters):
+            framework.config.switch_ctx(i)
+            notification_enabled = framework.config.REPORTING['email']['enable_notification']
+            if not notification_enabled:
+                log.warning("Email notification is disabled!")
+                continue
+            email_reports()
+        framework.config.switch_default_cluster_ctx()

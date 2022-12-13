@@ -15,3 +15,15 @@ class PullSecretNotFoundException(Exception):
 
 class EmailPasswordNotFoundException(Exception):
     pass
+
+class ResourceNameNotSpecifiedException(Exception):
+    pass
+
+class ResourceWrongStatusException(Exception):
+    pass
+
+class TimeoutExpiredError(Exception):
+    pass
+
+class CommandFailed(Exception):
+    pass

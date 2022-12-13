@@ -15,16 +15,15 @@ from semantic_version import Version
 
 from src.framework import config
 from src.utility.constants import (
-    TEMPLATE_DIR,
+    EMAIL_NOTIFICATION_HTML,
     TOP_DIR
 )
-from src.exceptions.ocp_exceptions import (
+from src.utility.exceptions import (
     UnsupportedOSType,
     ClientDownloadError,
-    EmailPasswordNotFoundException
-
+    EmailPasswordNotFoundException,
+    CommandFailed
 )
-from src.exceptions.cmd_exceptions import CommandFailed
 from src.utility.cmd import exec_cmd
 
 logger = logging.getLogger(__name__)
@@ -349,9 +348,11 @@ def is_cluster_running(cluster_path):
     from src.utility.openshift_ops import OpenshiftOps
 
     return OpenshiftOps.set_kubeconfig(
-        os.path.join(cluster_path, config.RUN.get("kubeconfig_location"))
+        get_kube_config_path(cluster_path)
     )
 
+def get_kube_config_path(cluster_path=""):
+    return os.path.join(cluster_path, config.RUN.get("kubeconfig_location"))
 
 def get_email_pass():
     email_pass_path = os.path.join(TOP_DIR, "data", "email-pass")
@@ -363,6 +364,7 @@ def get_email_pass():
     with open(email_pass_path, "r") as f:
         # single string
         return f.read()
+
 def get_ocp_version(seperator=None):
     """
     Get current ocp version
@@ -376,49 +378,52 @@ def get_ocp_version(seperator=None):
             replaced by seperator and resulting string will be returned.
             eg: If seperator is '_' then string returned would be '4_2'
     """
-    char = seperator if seperator else "."
-    if config.ENV_DATA.get("skip_ocp_deployment"):
-        raw_version = json.loads(exec_cmd("oc version -o json"))["openshiftVersion"]
-    else:
-        raw_version = config.DEPLOYMENT["installer_version"]
-    version = Version.coerce(raw_version)
-    return char.join([str(version.major), str(version.minor)])
+    version = ""
+    try:
+        char = seperator if seperator else "."
+        if config.ENV_DATA.get("skip_ocp_deployment"):
+            raw_version = json.loads(exec_cmd("oc version -o json"))["openshiftVersion"]
+        else:
+            raw_version = config.DEPLOYMENT["installer_version"]
+        version = Version.coerce(raw_version)
+        version = char.join([str(version.major), str(version.minor)])
+    except CommandFailed:
+        logger.error("Unable to get version OCP version.")
+    return version
 
 def email_reports():
     mailids = config.REPORTING['email']['recipients']
     if mailids == "":
-        logger.warning("No recipeient mail ids are found, Skipping email notification")
+        logger.warning("No recipients found, Skipping email notification !")
+        return
     recipients = []
     [recipients.append(mailid) for mailid in mailids.split(",")]
-    sender = "ocpclusterbot@gmail.com"
+    sender = config.REPORTING['email']['address']
     msg = MIMEMultipart("alternative")
     msg["Subject"] = (
         f"ocp4mco-ci cluster deployment "
-        f"(RUN ID: {config.RUN['run_id']}) "
+        f"(RUN ID: {config.run_id}) "
     )
     msg["From"] = sender
     msg["To"] = ",".join(recipients)
-    html = os.path.join(TEMPLATE_DIR, "result-email-template.html")
+    html = os.path.join(EMAIL_NOTIFICATION_HTML)
     with open(os.path.expanduser(html)) as fd:
         html_data = fd.read()
     soup = BeautifulSoup(html_data, "html.parser")
     parse_html_for_email(soup)
     part1 = MIMEText(soup, "html")
     msg.attach(part1)
-    for i in range(config.nclusters):
-        config.switch_ctx(i)
-        kube_config_path = os.path.join(config.ENV_DATA["cluster_path"], config.RUN["kubeconfig_location"])
-        is_kube_config_exists = os.path.exists(kube_config_path)
-        if is_kube_config_exists:
-            with open(kube_config_path) as fd:
-                part2 = MIMEBase('application', "octet-stream")
-                part2.set_payload(fd.read())
-                encoders.encode_base64(part2)
-                part2.add_header(
-                    'Content-Disposition', 'attachment; filename="kubeconfig_%s"' % config.ENV_DATA["cluster_name"]
-                )
-                msg.attach(part2)
-    config.switch_default_cluster_ctx()
+    kube_config_path = os.path.join(config.ENV_DATA["cluster_path"], config.RUN["kubeconfig_location"])
+    is_kube_config_exists = os.path.exists(kube_config_path)
+    if is_kube_config_exists:
+        with open(kube_config_path) as fd:
+            part2 = MIMEBase('application', "octet-stream")
+            part2.set_payload(fd.read())
+            encoders.encode_base64(part2)
+            part2.add_header(
+                'Content-Disposition', 'attachment; filename="kubeconfig_%s"' % config.ENV_DATA["cluster_name"]
+            )
+            msg.attach(part2)
     try:
         s = smtplib.SMTP_SSL(
             config.REPORTING["email"]["smtp_server"],
@@ -436,49 +441,44 @@ def email_reports():
         logger.exception("Sending email with results failed!")
 
 def parse_html_for_email(soup):
+    # email notification html
     div = soup.find("div")
-    table_template = copy.deepcopy(soup.find("table"))
+    table = copy.deepcopy(soup.find("table"))
+    # clear old table
     soup.find("table").clear()
-    for i in range(config.nclusters):
-        config.switch_ctx(i)
-        username = config.RUN["username"]
-        password = ""
-        table = copy.deepcopy(table_template)
-        rows = table.findAll('tr')
-        for row in rows:
-            column_header = row.find('th')
-            column = row.find('td')
-            if column_header.string == "Cluster name":
-                column.string = config.ENV_DATA["cluster_name"]
-            if column_header.string == "Username":
-                column.string = config.RUN["username"]
-            if column_header.string == "Password":
-                auth_file_path = config.RUN["password_location"]
-                auth_file_full_path = os.path.join(config.ENV_DATA["cluster_path"], auth_file_path)
-                is_password_exist = os.path.exists(auth_file_full_path)
-                if is_password_exist:
-                    with open(os.path.expanduser(auth_file_full_path)) as fd:
-                        password = fd.read()
-                        column.string = password
-                else:
-                    column.string = ""
-            if column_header.string == "Cluster role":
-                column.string = 'ACM Cluster' if config.MULTICLUSTER["acm_cluster"] else 'Non-ACM Cluster'
-            if column_header.string == "URL":
-                column.string = f"https://console-openshift-console.apps.{config.ENV_DATA['cluster_name']}.{config.ENV_DATA['base_domain']}"
-            if column_header.string == "Server":
-                column.string = f"https://api.{config.ENV_DATA['cluster_name']}.{config.ENV_DATA['base_domain']}:6443"
-            if column_header.string == "OCP cluster status":
-                p_tag = column.find("p")
-                status = 'Available' if i in config.available_ocp_cluster_ctx_list else 'Not Available'
-                p_tag.string = status
-                p_tag['style'] = "color: green;" if status == 'Available' else "color: red;"
-            if column_header.string == "OCP cluster version":
-                column.string = get_ocp_version()
-            if column_header.string == "Login command":
-                column.string = f"oc login https://api.{config.ENV_DATA['cluster_name']}.{config.ENV_DATA['base_domain']}:6443 -u {username} -p {password}"
-
-        div.insert(i, table)
-    config.switch_default_cluster_ctx()
-
-
+    username = config.RUN["username"]
+    password = ""
+    rows = table.findAll('tr')
+    for row in rows:
+        column_header = row.find('th')
+        column = row.find('td')
+        if column_header.string == "Cluster name":
+            column.string = config.ENV_DATA["cluster_name"]
+        if column_header.string == "Username":
+            column.string = config.RUN["username"]
+        if column_header.string == "Password":
+            auth_file_path = config.RUN["password_location"]
+            auth_file_full_path = os.path.join(config.ENV_DATA["cluster_path"], auth_file_path)
+            is_password_exist = os.path.exists(auth_file_full_path)
+            if is_password_exist:
+                with open(os.path.expanduser(auth_file_full_path)) as fd:
+                    password = fd.read()
+                    column.string = password
+            else:
+                column.string = ""
+        if column_header.string == "Cluster role":
+            column.string = 'ACM Cluster' if config.MULTICLUSTER["acm_cluster"] else 'Non-ACM Cluster'
+        if column_header.string == "Cluster status":
+            p_tag = column.find("p")
+            status = 'Available' if is_cluster_running(config.ENV_DATA["cluster_path"])  else 'Not Available'
+            p_tag.string = status
+            p_tag['style'] = "color: green;" if status == 'Available' else "color: red;"
+        if column_header.string == "Cluster version":
+            column.string = get_ocp_version()
+        if column_header.string == "Cluster URL":
+            column.string = f"https://console-openshift-console.apps.{config.ENV_DATA['cluster_name']}.{config.ENV_DATA['base_domain']}"
+        if column_header.string == "Server":
+            column.string = f"https://api.{config.ENV_DATA['cluster_name']}.{config.ENV_DATA['base_domain']}:6443"
+        if column_header.string == "Login command":
+            column.string = f"oc login https://api.{config.ENV_DATA['cluster_name']}.{config.ENV_DATA['base_domain']}:6443 -u {username} -p {password}"
+        div.insert(0, table)
