@@ -79,7 +79,7 @@ class Deployment(object):
                 else:
                     log.warning("OCS deployment will be skipped")
             except Exception:
-                log.error("Unable to deploy OCS cluster !")
+                log.error("Unable to deploy OCS cluster")
         framework.config.switch_default_cluster_ctx()
         if len(processes) > 0:
             [proc.start() for proc in processes]
@@ -91,9 +91,9 @@ class Deployment(object):
         # send email notification
         for i in range(framework.config.nclusters):
             framework.config.switch_ctx(i)
-            notification_enabled = framework.config.REPORTING['email']['enable_notification']
-            if not notification_enabled:
-                log.warning("Email notification is disabled!")
-                continue
-            email_reports()
+            skip_notification = framework.config.REPORTING['email']['skip_notification']
+            if not skip_notification:
+                email_reports()
+            else:
+                log.warning("Email notification will be skipped")
         framework.config.switch_default_cluster_ctx()

@@ -1,0 +1,12 @@
+DEPLOYMENT:
+  force_download_installer: false
+  installer_version : "4.12.0-0.nightly-2022-07-25-055755"
+  ssh_key: "/home/gshanmug/.ssh/id_rsa.pub"
+  ocp_mirror_url: "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp-dev-preview"
+ENV_DATA:
+  skip_ocp_deployment: true
+  skip_ocs_deployment: true
+  ocs_registry_image: "quay.io/rhceph-dev/ocs-registry:latest-stable-upgrade-4.12"
+REPORTING:
+  email:
+    skip_notification: true

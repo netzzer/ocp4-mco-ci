@@ -421,7 +421,7 @@ def email_reports():
             part2.set_payload(fd.read())
             encoders.encode_base64(part2)
             part2.add_header(
-                'Content-Disposition', 'attachment; filename="kubeconfig_%s"' % config.ENV_DATA["cluster_name"]
+                'Content-Disposition', 'attachment; filename="kubeconfig"'
             )
             msg.attach(part2)
     try:

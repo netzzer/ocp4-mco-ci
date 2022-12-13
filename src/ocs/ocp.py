@@ -172,7 +172,6 @@ class OCP(object):
             self,
             command,
             out_yaml_format=True,
-            secrets=None,
             timeout=600,
             ignore_error=False,
             silent=False,
@@ -215,20 +214,12 @@ class OCP(object):
         oc_cmd += command
         out = exec_cmd(
             cmd=oc_cmd,
-            secrets=secrets,
             timeout=timeout,
             ignore_error=ignore_error,
             threading_lock=self.threading_lock,
             silent=silent,
             **kwargs,
         )
-
-        try:
-            if out.startswith("hints = "):
-                out = out[out.index("{"):]
-        except ValueError:
-            pass
-
         if out_yaml_format:
-            return yaml.safe_load(out)
+            return yaml.safe_load(out.stdout)
         return out
