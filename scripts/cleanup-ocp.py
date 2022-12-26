@@ -3,13 +3,17 @@ import datetime
 import time
 import os
 
-nowtime = str(datetime.datetime.now())
-
+def get_suffix():
+    nowtime = datetime.datetime.now()
+    month = nowtime.strftime("%b").lower()
+    day = str(nowtime.day)
+    return month + '-' + day
 
 def job(t):
     try:
         print("executing")
-        os.system("cleanup-ocp --cluster-paths /root/clusters/odfcluster1 /root/clusters/odfcluster2")
+        suffix = get_suffix()
+        os.system(f"cleanup-ocp --cluster-paths /root/clusters/odfcluster1-{suffix} /root/clusters/odfcluster2-{suffix}")
     except Exception:
         pass
 
