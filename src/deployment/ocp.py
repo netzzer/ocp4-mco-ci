@@ -31,7 +31,8 @@ class OCPDeployment():
         return utils.download_installer(
             version=config.DEPLOYMENT["installer_version"],
             bin_dir=config.RUN["bin_dir"],
-            force_download=config.DEPLOYMENT["force_download_installer"]
+            force_download=config.DEPLOYMENT["force_download_installer"],
+            verify_ssl_certificate=config.RUN["https_certification_verification"],
         )
 
     def get_pull_secret(self):

@@ -19,6 +19,8 @@ RUN:
   # If the client version ends with .nightly, the version will be exposed
   # to the latest accepted OCP nightly build version
   client_version: '4.12.0-0.nightly'
+  # Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+  https_certification_verification: true
 
 # In this section we are storing all deployment related configuration but not
 # the environment related data as those are defined in ENV_DATA section.

@@ -32,7 +32,8 @@ logger = logging.getLogger(__name__)
 def download_installer(
     version=None,
     bin_dir=None,
-    force_download=False
+    force_download=False,
+    verify_ssl_certificate=True,
 ):
     version = version or config.DEPLOYMENT["installer_version"]
     bin_dir = os.path.expanduser(bin_dir or config.RUN["bin_dir"])
@@ -52,7 +53,7 @@ def download_installer(
         os.chdir(bin_dir)
         tarball = f"{installer_filename}.tar.gz"
         url = get_openshift_mirror_url(installer_filename, version)
-        download_file(url, tarball)
+        download_file(url, tarball, verify=verify_ssl_certificate)
         exec_cmd(f"tar xzvf {tarball} {installer_filename}")
         delete_file(tarball)
         # return to the previous working directory
