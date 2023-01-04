@@ -22,8 +22,13 @@ class ResourceNameNotSpecifiedException(Exception):
 class ResourceWrongStatusException(Exception):
     pass
 
+class ResourceNotFoundError(Exception):
+    pass
+
 class TimeoutExpiredError(Exception):
     pass
 
 class CommandFailed(Exception):
+    pass
+class NoInstallPlanForApproveFoundException(Exception):
     pass

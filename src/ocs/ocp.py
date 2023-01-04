@@ -3,9 +3,12 @@ import os
 import yaml
 import time
 
+from src.utility.retry import retry
+from src.utility.timeout import TimeoutSampler
 from src.framework import config
 from src.utility.exceptions  import (
     ResourceNameNotSpecifiedException,
+    ResourceWrongStatusException,
     CommandFailed
 )
 from src.utility.cmd import exec_cmd
@@ -167,6 +170,30 @@ class OCP(object):
                         f"Trying again in {wait} sec."
                     )
                     time.sleep(wait if wait else 1)
+
+    @retry(ResourceWrongStatusException, tries=4, delay=5, backoff=1)
+    def wait_for_phase(self, phase, timeout=300, sleep=5):
+        """
+        Wait till phase of resource is the same as required one passed in
+        the phase parameter.
+        Args:
+            phase (str): Desired phase of resource object
+            timeout (int): Timeout in seconds to wait for desired phase
+            sleep (int): Time in seconds to sleep between attempts
+        Raises:
+            ResourceWrongStatusException: In case the resource is not in expected
+                phase.
+            NotSupportedFunctionError: If resource doesn't have phase!
+            ResourceNameNotSpecifiedException: in case the name is not
+                specified.
+        """
+        self.check_function_supported(self._has_phase)
+        self.check_name_is_specified()
+        sampler = TimeoutSampler(timeout, sleep, func=self.check_phase, phase=phase)
+        if not sampler.wait_for_func_status(True):
+            raise ResourceWrongStatusException(
+                f"Resource: {self.resource_name} is not in expected phase: " f"{phase}"
+            )
 
     def exec_oc_cmd(
             self,

@@ -14,4 +14,11 @@ PATCH_SPECIFIC_SOURCES_CMD = (
     "}}]}}}}' --type=merge"
 )
 CATALOG_SOURCE_YAML = os.path.join(TEMPLATE_DIR, "catalog-source.yaml")
+SUBSCRIPTION_ODF_YAML = os.path.join(TEMPLATE_DIR, "subscription_odf.yaml")
+SUBSCRIPTION_YAML = os.path.join(TEMPLATE_DIR, "subscription.yaml")
 MARKETPLACE_NAMESPACE = "openshift-marketplace"
+OLM_YAML = os.path.join(TEMPLATE_DIR, "deploy-with-olm.yaml")
+OPERATOR_INTERNAL_SELECTOR = "ocs-operator-internal=true"
+OPERATOR_SOURCE_NAME = "ocs-operatorsource"
+SUBSCRIPTION = "Subscription"
+OPENSHIFT_STORAGE_NAMESPACE = "openshift-storage"
