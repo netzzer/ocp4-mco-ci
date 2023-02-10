@@ -273,10 +273,17 @@ def get_openshift_mirror_url(file_name, version):
         os_type = "linux"
     else:
         raise UnsupportedOSType
-    url_template = os.path.join(
-        config.DEPLOYMENT.get("ocp_mirror_url", ""),
-        "{version}/{file_name}-{os_type}-{version}.tar.gz"
-    )
+    mirror_link = config.DEPLOYMENT.get("ocp_mirror_url", "").find("mirror.openshift.com") != -1
+    if mirror_link:
+        url_template = os.path.join(
+            config.DEPLOYMENT.get("ocp_mirror_url", ""),
+            "{version}/{file_name}-{os_type}.tar.gz"
+        )
+    else:
+        url_template = os.path.join(
+            config.DEPLOYMENT.get("ocp_mirror_url", ""),
+            "{version}/{file_name}-{os_type}-{version}.tar.gz"
+        )
     url = url_template.format(
         version=version,
         file_name=file_name,
@@ -298,6 +305,7 @@ def download_file(url, filename, **kwargs):
     with open(filename, "wb") as f:
         r = requests.get(url, **kwargs)
         if(not r.ok):
+            print(f"The URL {url} is not available! Status: {r.status_code}. retrying...")
             raise ResourceWrongStatusException(
                 f"The URL {url} is not available! Status: {r.status_code}."
             )
@@ -394,8 +402,11 @@ def get_ocp_version(seperator=None):
             raw_version = json.loads(exec_cmd("oc version -o json"))["openshiftVersion"]
         else:
             raw_version = config.DEPLOYMENT["installer_version"]
-        version = Version.coerce(raw_version)
-        version = char.join([str(version.major), str(version.minor)])
+        if raw_version.startswith('latest'):
+            version = raw_version.split('-')[1]
+        else:
+            version = Version.coerce(raw_version)
+            version = char.join([str(version.major), str(version.minor)])
     except CommandFailed:
         logger.error("Unable to get version OCP version.")
     return version
