@@ -67,7 +67,7 @@ class Deployment(object):
             try:
                 framework.config.switch_ctx(i)
                 if not framework.config.ENV_DATA["skip_ocs_deployment"]:
-                    if framework.config.multicluster and framework.config.get_acm_index() == i and not framework.config.multicluster["primary_cluster"]:
+                    if framework.config.multicluster and framework.config.get_acm_index() == i and not framework.config.MULTICLUSTER["primary_cluster"]:
                         continue
                     ocsDeployment = OCSDeployment()
                     ocsDeployment.deploy_prereq()

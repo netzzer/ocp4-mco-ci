@@ -22,9 +22,11 @@ from src.utility.exceptions import (
     UnsupportedOSType,
     ClientDownloadError,
     EmailPasswordNotFoundException,
-    CommandFailed
+    CommandFailed,
+    ResourceWrongStatusException
 )
 from src.utility.cmd import exec_cmd
+from src.utility.retry import retry
 
 logger = logging.getLogger(__name__)
 
@@ -283,6 +285,7 @@ def get_openshift_mirror_url(file_name, version):
     logger.info(f"openshift installer url: {url}")
     return url
 
+@retry(ResourceWrongStatusException, tries=4, delay=5, backoff=1)
 def download_file(url, filename, **kwargs):
     """
     Download a file from a specified url
@@ -294,6 +297,11 @@ def download_file(url, filename, **kwargs):
     logger.debug(f"Download '{url}' to '{filename}'.")
     with open(filename, "wb") as f:
         r = requests.get(url, **kwargs)
+        if(not r.ok):
+            raise ResourceWrongStatusException(
+                f"The URL {url} is not available! Status: {r.status_code}."
+            )
+
         assert r.ok, f"The URL {url} is not available! Status: {r.status_code}."
         f.write(r.content)
 
