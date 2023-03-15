@@ -1,0 +1,7 @@
+apiVersion: v1
+data:
+  ca-bundle.crt: CERT_PLACEHOLDER
+kind: ConfigMap
+metadata:
+  name: user-ca-bundle
+  namespace: openshift-config

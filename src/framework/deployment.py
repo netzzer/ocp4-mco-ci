@@ -6,6 +6,7 @@ from src.deployment.ocp import OCPDeployment
 from src.deployment.ocs import OCSDeployment
 from src.deployment.mco import MCODeployment
 from src.deployment.acm import ACMDeployment
+from src.deployment.ssl_certificate import SSLCertificate
 from src.deployment.submariner import Submariner
 from src.deployment.import_managed_cluster import ImportManagedCluster
 from src import framework
@@ -21,10 +22,10 @@ log.addHandler(handler)
 
 def set_log_level(log_cli_level):
     """
-            Set the log level of this module based on the pytest.ini log_cli_level
-            Args:
-                config (pytest.config): Pytest config object
-            """
+        Set the log level of this module based on the pytest.ini log_cli_level
+        Args:
+            config (pytest.config): Pytest config object
+    """
     level = log_cli_level or "INFO"
     log.setLevel(logging.getLevelName(level))
 
@@ -73,10 +74,10 @@ class Deployment(object):
                 if not framework.config.ENV_DATA["skip_ocs_deployment"]:
                     if framework.config.multicluster and framework.config.get_acm_index() == i and not framework.config.MULTICLUSTER["primary_cluster"]:
                         continue
-                    log.info(f'Deploying OCS Operator on {framework.config.ENV_DATA["cluster_name"]}')
+                    log.info("Deploying OCS Operator")
                     ocs_deployment = OCSDeployment()
                     ocs_deployment.deploy_prereq()
-                    log.info(f'Deploying OCS cluster on {framework.config.ENV_DATA["cluster_name"]}')
+                    log.info("Creating OCS cluster")
                     p = mp.Process(
                         target=OCSDeployment.deploy_ocs,
                         args=(framework.config.RUN["kubeconfig_location"], framework.config.ENV_DATA['skip_ocs_cluster_creation'],)
@@ -100,7 +101,7 @@ class Deployment(object):
                 framework.config.switch_ctx(i)
                 if framework.config.multicluster and framework.config.get_acm_index() == i:
                     if not framework.config.MULTICLUSTER["skip_mco_deployment"]:
-                        log.info(f'Deploying MCO Operator on {framework.config.ENV_DATA["cluster_name"]}')
+                        log.info("Deploying MCO Operator")
                         mco_deployment = MCODeployment()
                         mco_deployment.deploy_prereq()
                         MCODeployment.deploy_mco()
@@ -117,7 +118,7 @@ class Deployment(object):
                 framework.config.switch_ctx(i)
                 if framework.config.multicluster and framework.config.get_acm_index() == i:
                     if framework.config.MULTICLUSTER["deploy_acm_hub_cluster"]:
-                        log.info(f'Deploying ACM Operator on {framework.config.ENV_DATA["cluster_name"]}')
+                        log.info("Deploying ACM")
                         acm_deployment = ACMDeployment()
                         acm_deployment.deploy_acm_hub_unreleased()
                     else:
@@ -139,22 +140,46 @@ class Deployment(object):
                         log.warning("Submariner configuration will be skipped")
         except Exception as ex:
             log.error("Unable to configure submariner", ex)
+        framework.config.switch_default_cluster_ctx()
 
     def aws_import_cluster(self):
         try:
             for i in range(framework.config.nclusters):
                 framework.config.switch_ctx(i)
                 if framework.config.multicluster and framework.config.get_acm_index() == i:
-                    for cluster in get_non_acm_cluster_config():
-                        if cluster.MULTICLUSTER['import_as_managed_cluster']:
+                    if framework.config.MULTICLUSTER['import_as_managed_cluster']:
+                        for cluster in get_non_acm_cluster_config():
                             log.info(f"Importing cluster {cluster.ENV_DATA['cluster_name']} into ACM")
                             import_managed_cluster = ImportManagedCluster(cluster.ENV_DATA['cluster_name'], cluster.ENV_DATA['cluster_path'])
                             import_managed_cluster.import_cluster()
-                        else:
-                            log.warning(f"Skipping managed cluster import for {cluster.ENV_DATA['cluster_name']}")
+                    else:
+                        log.warning(f"Skipping managed cluster import")
         except Exception as ex:
             log.error("Unable to import cluster", ex)
+        framework.config.switch_default_cluster_ctx()
 
+    def ssl_certificate(self):
+        try:
+            for i in range(framework.config.nclusters):
+                framework.config.switch_ctx(i)
+                if framework.config.multicluster and framework.config.get_acm_index() == i:
+                    if framework.config.MULTICLUSTER['exchange_ssl_certificate']:
+                        ssl_certificate = SSLCertificate()
+                        managed_clusters = get_non_acm_cluster_config(True)
+                        for cluster in managed_clusters:
+                            framework.config.switch_ctx(cluster.MULTICLUSTER["multicluster_index"])
+                            log.info("Fetching ssl secrets")
+                            ssl_certificate.get_certificate()
+                        ssl_certificate.get_certificate_file_path()
+                        for cluster in managed_clusters:
+                            framework.config.switch_ctx(cluster.MULTICLUSTER["multicluster_index"])
+                            log.info("Exchanging ssl secrets")
+                            ssl_certificate.exchange_certificate()
+                    else:
+                        log.warning(f"Skipping SSL certificate exchange for managed clusters")
+        except Exception as ex:
+            log.error("Unable to import cluster", ex)
+        framework.config.switch_default_cluster_ctx()
 
     def send_email(self):
         # send email notification

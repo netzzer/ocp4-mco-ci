@@ -152,7 +152,7 @@ class OCSDeployment(OperatorDeployment):
     @staticmethod
     def deploy_ocs(kubeconfig, skip_cluster_creation):
         if not skip_cluster_creation:
-            exec_cmd(f"oc apply -f {constants.STORAGE_CLUSTER_YAML}")
+            exec_cmd(f"oc apply -f {constants.STORAGE_CLUSTER_YAML} --kubeconfig {kubeconfig}")
             OCSDeployment.verify_storage_cluster(kubeconfig)
 
 

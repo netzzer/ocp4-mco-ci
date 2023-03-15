@@ -23,6 +23,7 @@ OLM_YAML = os.path.join(TEMPLATE_DIR, "deploy-with-olm.yaml")
 MCO_OLM_YAML = os.path.join(TEMPLATE_DIR, "mco-deploy-with-olm.yaml")
 AWS_IAM_POLICY_JSON = os.path.join(TEMPLATE_DIR, "aws-iam-policy.json")
 STORAGE_CLUSTER_YAML = os.path.join(TEMPLATE_DIR, "storage-cluster.yaml")
+SSL_CERTIFICATE_YAML = os.path.join(TEMPLATE_DIR, "ssl-certificate.yaml")
 
 # Operators
 OPERATOR_INTERNAL_SELECTOR = "ocs-operator-internal=true"

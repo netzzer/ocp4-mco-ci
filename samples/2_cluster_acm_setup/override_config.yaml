@@ -11,5 +11,3 @@ ENV_DATA:
   ocs_registry_image: "quay.io/rhceph-dev/ocs-registry:latest-stable-4.13.0"
   ocs_csv_channel: "stable-4.13"
   ocs_version: '4.13'
-MULTICLUSTER:
-  import_as_managed_cluster: true
