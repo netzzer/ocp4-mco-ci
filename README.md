@@ -67,4 +67,18 @@ DEPLOYMENT:
 
 ## Secrets
 1. `pull-secret` - Keep your pull secret under `data/pull-secret` file. Create `data` directory manually if not exists.
-2. `email-pass` - Keep your email password under `data/email-pass` file.
+2. `auth` - Keep your quay token under `data/auth` to install ACM pre-release downstream build.
+    In order to get a QUAY_TOKEN, go to your quay.io "Account Settings" page by selecting your username/icon in the top 
+    right corner of the page, then "Generate Encrypted Password".  Choose "Kubernetes Secret" and copy just secret text 
+    that follows .dockerconfigjson:.  [For more](https://github.com/stolostron/deploy#deploying-downstream-builds-snapshots-for-product-quality-engineering-only-20)
+   ```
+   quay:
+     cli_password: 'your quay token'
+   ```
+## Email
+To send cluster information to email ID’s, postfix should be installed on fedora
+```commandline
+    * sudo dnf install postfix
+    * systemctl enable postfix.service
+    * systemctl start postfix.service
+```
