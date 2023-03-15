@@ -12,32 +12,26 @@ from src.deployment.operator_deployment import OperatorDeployment
 
 logger = logging.getLogger(__name__)
 
-class OCSDeployment(OperatorDeployment):
+class MCODeployment(OperatorDeployment):
     def __init__(self):
-        super().__init__(constants.OPENSHIFT_STORAGE_NAMESPACE)
+        super().__init__(config.ENV_DATA.get("mco_install_namespace") or constants.MCO_OPERATOR_NAMESPACE)
 
     def deploy_prereq(self):
-        # create OCS catalog source
+        # create MCO catalog source
         self.create_catalog_source()
-        # deploy ocs operator
-        self.ocs_subscription()
-        # enable odf-console plugin
-        self.enable_console_plugin(constants.OCS_PLUGIN_NAME, config.ENV_DATA.get("enable_ocs_plugin"))
+        # deploy MCO operator
+        self.mco_subscription()
+        # enable odf-multicluster-console plugin
+        self.enable_console_plugin(constants.MCO_PLUGIN_NAME, config.MULTICLUSTER.get("enable_mco_plugin"))
 
-    def ocs_subscription(self):
+    def mco_subscription(self):
         logger.info("Creating namespace and operator group.")
-        exec_cmd(f"oc apply -f {constants.OLM_YAML}")
+        # exec_cmd(f"oc apply -f {constants.MCO_OLM_YAML}")
         operator_selector = get_selector_for_ocs_operator()
-        # For OCS version >= 4.9, we have odf-operator
-        ocs_version = version.get_semantic_ocs_version_from_config()
-        if ocs_version >= version.VERSION_4_9:
-            ocs_operator_name = defaults.ODF_OPERATOR_NAME
-            subscription_file = constants.SUBSCRIPTION_ODF_YAML
-        else:
-            ocs_operator_name = defaults.OCS_OPERATOR_NAME
-            subscription_file = constants.SUBSCRIPTION_YAML
+        mco_operator_name = defaults.MCO_OPERATOR_NAME
+        subscription_file = constants.SUBSCRIPTION_MCO_YAML
         package_manifest = PackageManifest(
-            resource_name=ocs_operator_name,
+            resource_name=defaults.MCO_OPERATOR_NAME,
             selector=operator_selector,
         )
         # Wait for package manifest is ready
@@ -48,9 +42,11 @@ class OCSDeployment(OperatorDeployment):
         if custom_channel:
             logger.info(f"Custom channel will be used: {custom_channel}")
             subscription_yaml_data["spec"]["channel"] = custom_channel
+            subscription_yaml_data["spec"]["startingCSV"] = package_manifest.get_current_csv(channel=custom_channel)
         else:
             logger.info(f"Default channel will be used: {default_channel}")
             subscription_yaml_data["spec"]["channel"] = default_channel
+            subscription_yaml_data["spec"]["startingCSV"] = package_manifest.get_current_csv(channel=default_channel)
         if config.DEPLOYMENT.get("stage"):
             subscription_yaml_data["spec"]["source"] = constants.OPERATOR_SOURCE_NAME
         subscription_manifest = tempfile.NamedTemporaryFile(
@@ -60,8 +56,8 @@ class OCSDeployment(OperatorDeployment):
             subscription_yaml_data, subscription_manifest.name
         )
         exec_cmd(f"oc apply -f {subscription_manifest.name}")
-        self.wait_for_subscription(ocs_operator_name)
-        self.wait_for_csv(ocs_operator_name)
+        self.wait_for_subscription(mco_operator_name)
+        self.wait_for_csv(mco_operator_name)
         logger.info("Sleeping for 30 seconds after CSV created")
         time.sleep(30)
 
@@ -69,5 +65,5 @@ class OCSDeployment(OperatorDeployment):
         pass
 
     @staticmethod
-    def deploy_ocs(log_cli_level="INFO"):
+    def deploy_mco(log_cli_level="INFO"):
         pass

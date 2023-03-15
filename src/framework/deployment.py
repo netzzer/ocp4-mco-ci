@@ -4,11 +4,14 @@ import multiprocessing as mp
 
 from src.deployment.ocp import OCPDeployment
 from src.deployment.ocs import OCSDeployment
+from src.deployment.mco import MCODeployment
+from src.deployment.acm import ACMDeployment
+from src.deployment.submariner import Submariner
+from src.deployment.import_managed_cluster import ImportManagedCluster
 from src import framework
 from src.framework.logger_factory import set_log_record_factory
 from src.utility.constants import LOG_FORMAT
-from src.utility.utils import is_cluster_running
-from src.utility.utils import email_reports
+from src.utility.utils import (is_cluster_running, email_reports, get_non_acm_cluster_config)
 
 log = logging.getLogger(__name__)
 current_factory = logging.getLogRecordFactory()
@@ -42,11 +45,12 @@ class Deployment(object):
                     if is_cluster_running(cluster_path):
                         log.warning("OCP cluster is already running, skipping installation")
                     else:
-                        ocpDeployment = OCPDeployment(cluster_name, cluster_path)
-                        ocpDeployment.deploy_prereq()
+                        log.info(f'Deploying OCP cluster for {cluster_name}')
+                        ocp_deployment = OCPDeployment(cluster_name, cluster_path)
+                        ocp_deployment.deploy_prereq()
                         p = mp.Process(
                             target=OCPDeployment.deploy_ocp,
-                            args=(ocpDeployment.installer_binary_path, ocpDeployment.cluster_path, log_cli_level,)
+                            args=(ocp_deployment.installer_binary_path, ocp_deployment.cluster_path, log_cli_level,)
                         )
                         processes.append(p)
                 else:
@@ -69,8 +73,9 @@ class Deployment(object):
                 if not framework.config.ENV_DATA["skip_ocs_deployment"]:
                     if framework.config.multicluster and framework.config.get_acm_index() == i and not framework.config.MULTICLUSTER["primary_cluster"]:
                         continue
-                    ocsDeployment = OCSDeployment()
-                    ocsDeployment.deploy_prereq()
+                    log.info(f'Deploying OCS Operator on {framework.config.ENV_DATA["cluster_name"]}')
+                    ocs_deployment = OCSDeployment()
+                    ocs_deployment.deploy_prereq()
                     p = mp.Process(
                         target=OCSDeployment.deploy_ocs,
                         args=(log_cli_level,)
@@ -86,6 +91,69 @@ class Deployment(object):
             # complete the processes
             for proc in processes:
                 proc.join()
+
+    def deploy_mco(self):
+        # MCO Deployment
+        for i in range(framework.config.nclusters):
+            try:
+                framework.config.switch_ctx(i)
+                if framework.config.multicluster and framework.config.get_acm_index() == i:
+                    if not framework.config.MULTICLUSTER["skip_mco_deployment"]:
+                        log.info(f'Deploying MCO Operator on {framework.config.ENV_DATA["cluster_name"]}')
+                        mco_deployment = MCODeployment()
+                        mco_deployment.deploy_prereq()
+                        MCODeployment.deploy_mco()
+                    else:
+                        log.warning("MCO deployment will be skipped")
+            except Exception as ex:
+                log.error("Unable to deploy MCO operator", ex)
+        framework.config.switch_default_cluster_ctx()
+
+    def deploy_acm(self):
+        # ACM Deployment
+        for i in range(framework.config.nclusters):
+            try:
+                framework.config.switch_ctx(i)
+                if framework.config.multicluster and framework.config.get_acm_index() == i:
+                    if framework.config.MULTICLUSTER["deploy_acm_hub_cluster"]:
+                        log.info(f'Deploying ACM Operator on {framework.config.ENV_DATA["cluster_name"]}')
+                        acm_deployment = ACMDeployment()
+                        acm_deployment.deploy_acm_hub_unreleased()
+                    else:
+                        log.warning("ACM deployment will be skipped")
+            except Exception as ex:
+                log.error("Unable to deploy ACM hub operator", ex)
+        framework.config.switch_default_cluster_ctx()
+
+    def configure_submariner(self):
+        try:
+            for i in range(framework.config.nclusters):
+                framework.config.switch_ctx(i)
+                if framework.config.multicluster and framework.config.get_acm_index() == i:
+                    if framework.config.MULTICLUSTER["configure_submariner"]:
+                        log.info("Configuring submariner")
+                        submariner = Submariner()
+                        submariner.deploy()
+                    else:
+                        log.warning("Submariner configuration will be skipped")
+        except Exception as ex:
+            log.error("Unable to configure submariner", ex)
+
+    def aws_import_cluster(self):
+        try:
+            for i in range(framework.config.nclusters):
+                framework.config.switch_ctx(i)
+                if framework.config.multicluster and framework.config.get_acm_index() == i:
+                    for cluster in get_non_acm_cluster_config():
+                        if cluster.MULTICLUSTER['import_as_managed_cluster']:
+                            log.info(f"Importing cluster {cluster.ENV_DATA['cluster_name']} into ACM")
+                            import_managed_cluster = ImportManagedCluster(cluster.ENV_DATA['cluster_name'], cluster.ENV_DATA['cluster_path'])
+                            import_managed_cluster.import_cluster()
+                        else:
+                            log.warning(f"Skipping managed cluster import for {cluster.ENV_DATA['cluster_name']}")
+        except Exception as ex:
+            log.error("Unable to import cluster", ex)
+
 
     def send_email(self):
         # send email notification

@@ -1,0 +1,47 @@
+apiVersion: cluster.open-cluster-management.io/v1
+kind: ManagedCluster
+metadata:
+  name: '{{ cluster_name }}'
+  labels:
+    name: '{{ cluster_name }}'
+    cloud: auto-detect
+    vendor: auto-detect
+    cluster.open-cluster-management.io/clusterset: default
+  annotations: {}
+spec:
+  hubAcceptsClient: true
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: auto-import-secret
+  namespace: '{{ cluster_name }}'
+stringData:
+  autoImportRetry: "2"
+  kubeconfig: '{{ kube_config }}'
+type: Opaque
+---
+apiVersion: agent.open-cluster-management.io/v1
+kind: KlusterletAddonConfig
+metadata:
+  name: '{{ cluster_name }}'
+  namespace: '{{ cluster_name }}'
+spec:
+  clusterName: '{{ cluster_name }}'
+  clusterNamespace: '{{ cluster_name }}'
+  clusterLabels:
+    name: '{{ cluster_name }}'
+    cloud: auto-detect
+    vendor: auto-detect
+    cluster.open-cluster-management.io/clusterset: default
+  applicationManager:
+    enabled: true
+    argocdCluster: false
+  policyController:
+    enabled: true
+  searchCollector:
+    enabled: true
+  certPolicyController:
+    enabled: true
+  iamPolicyController:
+    enabled: true

@@ -2,6 +2,8 @@ import logging
 import os
 import yaml
 import time
+import shlex
+import re
 
 from src.utility.retry import retry
 from src.utility.timeout import TimeoutSampler
@@ -9,7 +11,8 @@ from src.framework import config
 from src.utility.exceptions  import (
     ResourceNameNotSpecifiedException,
     ResourceWrongStatusException,
-    CommandFailed
+    CommandFailed,
+    TimeoutExpiredError
 )
 from src.utility.cmd import exec_cmd
 
@@ -250,3 +253,283 @@ class OCP(object):
         if out_yaml_format:
             return yaml.safe_load(out.stdout)
         return out
+
+    def get_resource(self, resource_name, column, retry=0, wait=3, selector=None):
+        """
+        Get a column value for a resource based on:
+        'oc get <resource_kind> <resource_name>' command
+        Args:
+            resource_name (str): The name of the resource to get its column value
+            column (str): The name of the column to retrive
+            retry (int): Number of attempts to retry to get resource
+            wait (int): Number of seconds to wait beteween attempts for retry
+            selector (str): The resource selector to search with.
+        Returns:
+            str: The output returned by 'oc get' command not in the 'yaml'
+                format
+        """
+        resource_name = resource_name if resource_name else self.resource_name
+        selector = selector if selector else self.selector
+        # Get the resource in str format
+        resource = self.get(
+            resource_name=resource_name,
+            out_yaml_format=False,
+            retry=retry,
+            wait=wait,
+            selector=selector,
+        )
+        resource = re.split(r"\s{2,}", resource)
+        exception_list = ["RWO", "RWX", "ROX"]
+        # get the list of titles
+        titles = [i for i in resource if (i.isupper() and i not in exception_list)]
+
+        # Get the values from the output including access modes in capital
+        # letters
+        resource_info = [
+            i for i in resource if (not i.isupper() or i in exception_list)
+        ]
+
+        temp_list = shlex.split(resource_info.pop(0))
+
+        for i in temp_list:
+            if i.isupper():
+                titles.append(i)
+                temp_list.remove(i)
+        resource_info = temp_list + resource_info
+
+        # Fix for issue:
+        # https://github.com/red-hat-storage/ocs-ci/issues/6503
+        title_last_item = shlex.split(titles[-1])
+        updated_last_title_item = []
+        if len(title_last_item) > 1:
+            for i in title_last_item:
+                if i.isupper() and i not in exception_list:
+                    updated_last_title_item.append(i)
+                else:
+                    resource_info.insert(0, i)
+        if updated_last_title_item:
+            titles[-1] = " ".join(updated_last_title_item)
+
+        # Get the index of column
+        column_index = titles.index(column)
+
+        # WA, Failed to parse "oc get build" command
+        # https://github.com/red-hat-storage/ocs-ci/issues/2312
+        try:
+            if self.data["items"][0]["kind"].lower() == "build" and (
+                    "jax-rs-build" in self.data["items"][0].get("metadata").get("name")
+            ):
+                return resource_info[column_index - 1]
+        except Exception:
+            pass
+
+        return resource_info[column_index]
+    def wait_for_resource(
+            self,
+            condition,
+            resource_name="",
+            column="STATUS",
+            selector=None,
+            resource_count=0,
+            timeout=60,
+            sleep=3,
+            dont_allow_other_resources=False,
+            error_condition=None,
+    ):
+        """
+        Wait for a resource to reach to a desired condition
+        Args:
+            condition (str): The desired state the resource that is sampled
+                from 'oc get <kind> <resource_name>' command
+            resource_name (str): The name of the resource to wait
+                for (e.g.my-pv1)
+            column (str): The name of the column to compare with
+            selector (str): The resource selector to search with.
+                Example: 'app=rook-ceph-mds'
+            resource_count (int): How many resources expected to be
+            timeout (int): Time in seconds to wait
+            sleep (int): Sampling time in seconds
+            dont_allow_other_resources (bool): If True it will not allow other
+                resources in different state. For example you are waiting for 2
+                resources and there are currently 3 (2 in running state,
+                1 in ContainerCreating) the function will continue to next
+                iteration to wait for only 2 resources in running state and no
+                other exists.
+            error_condition (str): State of the resource that is sampled
+                from 'oc get <kind> <resource_name>' command, which makes this
+                method to fail immediately without waiting for a timeout. This
+                is optional and makes sense only when there is a well defined
+                unrecoverable state of the resource(s) which is not expected to
+                be part of a workflow under test, and at the same time, the
+                timeout itself is large.
+        Returns:
+            bool: True in case all resources reached desired condition,
+                False otherwise
+        """
+        if condition == error_condition:
+            # when this fails, this method is used in a wrong way
+            raise ValueError(
+                f"Condition '{condition}' we are waiting for must be different"
+                f" from error condition '{error_condition}'"
+                " which describes unexpected error state."
+            )
+        log.info(
+            (
+                f"Waiting for a resource(s) of kind {self._kind}"
+                f" identified by name '{resource_name}'"
+                f" using selector {selector}"
+                f" at column name {column}"
+                f" to reach desired condition {condition}"
+            )
+        )
+        resource_name = resource_name if resource_name else self.resource_name
+        selector = selector if selector else self.selector
+
+        # actual status of the resource we are waiting for, setting it to None
+        # now prevents UnboundLocalError raised when waiting timeouts
+        actual_status = None
+
+        try:
+            for sample in TimeoutSampler(
+                    timeout, sleep, self.get, resource_name, True, selector
+            ):
+
+                # Only 1 resource expected to be returned
+                if resource_name:
+                    retry = int(timeout / sleep if sleep else timeout / 1)
+                    status = self.get_resource(
+                        resource_name,
+                        column,
+                        retry=retry,
+                        wait=sleep,
+                    )
+                    if status == condition:
+                        log.info(
+                            f"status of {resource_name} at {column}"
+                            " reached condition!"
+                        )
+                        return True
+                    log.info(
+                        (
+                            f"status of {resource_name} at column {column} was {status},"
+                            f" but we were waiting for {condition}"
+                        )
+                    )
+                    actual_status = status
+                    if error_condition is not None and status == error_condition:
+                        raise ResourceWrongStatusException(
+                            resource_name,
+                            column=column,
+                            expected=condition,
+                            got=status,
+                        )
+                # More than 1 resources returned
+                elif sample.get("kind") == "List":
+                    in_condition = []
+                    in_condition_len = 0
+                    actual_status = []
+                    sample = sample["items"]
+                    sample_len = len(sample)
+                    for item in sample:
+                        try:
+                            item_name = item.get("metadata").get("name")
+                            status = self.get_resource(item_name, column)
+                            actual_status.append(status)
+                            if status == condition:
+                                in_condition.append(item)
+                                in_condition_len = len(in_condition)
+                            if (
+                                    error_condition is not None
+                                    and status == error_condition
+                            ):
+                                raise ResourceWrongStatusException(
+                                    item_name,
+                                    column=column,
+                                    expected=condition,
+                                    got=status,
+                                )
+                        except CommandFailed as ex:
+                            log.info(
+                                f"Failed to get status of resource: {item_name} at column {column}, "
+                                f"Error: {ex}"
+                            )
+                        if resource_count:
+                            if in_condition_len == resource_count:
+                                log.info(
+                                    f"{in_condition_len} resources already "
+                                    f"reached condition!"
+                                )
+                                if (
+                                        dont_allow_other_resources
+                                        and sample_len != in_condition_len
+                                ):
+                                    log.info(
+                                        f"There are {sample_len} resources in "
+                                        f"total. Continue to waiting as "
+                                        f"you don't allow other resources!"
+                                    )
+                                    continue
+                                return True
+                        elif len(sample) == len(in_condition):
+                            return True
+                    # preparing logging message with expected number of
+                    # resource items we are waiting for
+                    if resource_count > 0:
+                        exp_num_str = f"all {resource_count}"
+                    else:
+                        exp_num_str = "all"
+                    log.info(
+                        (
+                            f"status of {resource_name} at column {column} - item(s) were {actual_status},"
+                            f" but we were waiting"
+                            f" for {exp_num_str} of them to be {condition}"
+                        )
+                    )
+        except TimeoutExpiredError as ex:
+            log.error(f"timeout expired: {ex}")
+            # run `oc describe` on the resources we were waiting for to provide
+            # evidence so that we can understand what was wrong
+            output = self.describe(resource_name, selector=selector)
+            log.warning(
+                "Description of the resource(s) we were waiting for:\n%s", output
+            )
+            log.error(
+                (
+                    f"Wait for {self._kind} resource {resource_name} at column {column}"
+                    f" to reach desired condition {condition} failed,"
+                    f" last actual status was {actual_status}"
+                )
+            )
+            raise (ex)
+        except ResourceWrongStatusException:
+            output = self.describe(resource_name, selector=selector)
+            log.warning(
+                "Description of the resource(s) we were waiting for:\n%s", output
+            )
+            log.error(
+                (
+                    "Waiting for %s resource %s at column %s"
+                    " to reach desired condition %s was aborted"
+                    " because at least one is in unexpected %s state."
+                ),
+                self._kind,
+                resource_name,
+                column,
+                condition,
+                error_condition,
+            )
+            raise
+
+        return False
+
+    def add_label(self, resource_name, label):
+        """
+        Adds a new label for this pod
+        Args:
+            resource_name (str): Name of the resource you want to label
+            label (str): New label to be assigned for this pod
+                E.g: "label=app='rook-ceph-mds'"
+        """
+        command = f"label {self.kind} {resource_name} {label} --overwrite "
+        status = self.exec_oc_cmd(command)
+        return status

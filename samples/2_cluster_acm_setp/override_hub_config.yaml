@@ -1,0 +1,20 @@
+DEPLOYMENT:
+  force_download_installer: true
+  installer_version : "latest-4.13"
+  ssh_key: "/home/gshanmug/.ssh/id_rsa.pub"
+  ocp_mirror_url: "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp-dev-preview"
+ENV_DATA:
+  skip_ocp_deployment: false
+  skip_ocs_deployment: false
+  enable_ocs_plugin: true
+  ocs_registry_image: "quay.io/rhceph-dev/ocs-registry:latest-stable-4.13.0"
+  ocs_csv_channel: "stable-4.13"
+  ocs_version: '4.13'
+MULTICLUSTER:
+  acm_cluster: true
+  primary_cluster: true
+  configure_submariner: true
+  skip_mco_deployment: false
+  enable_mco_plugin: true
+  deploy_acm_hub_cluster: true
+  acm_unreleased_image: "2.8.0-DOWNSTREAM-2023-03-14-15-47-31"

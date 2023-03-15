@@ -190,8 +190,7 @@ class MultiClusterConfig:
             for attr in self.attr_list
         ]
         self.to_dict = self.cluster_ctx.to_dict
-        if self.RUN.get("kubeconfig"):
-            os.environ["KUBECONFIG"] = self.RUN.get("kubeconfig")
+        os.environ["KUBECONFIG"] = os.path.join(self.ENV_DATA['cluster_path'], self.RUN.get("kubeconfig_location"))
 
     def switch_ctx(self, index=0):
         self.cluster_ctx = self.clusters[index]

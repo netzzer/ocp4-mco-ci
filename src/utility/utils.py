@@ -5,6 +5,10 @@ import os
 import platform
 import copy
 import smtplib
+import yaml
+import shutil
+import time
+from yaml.loader import SafeLoader
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -16,14 +20,18 @@ from semantic_version import Version
 from src.framework import config
 from src.utility.constants import (
     EMAIL_NOTIFICATION_HTML,
-    TOP_DIR
+    TOP_DIR,
+    AUTH_CONFIG_DOCS,
+    AUTHYAML,
+    EXTERNAL_DIR,
 )
 from src.utility.exceptions import (
     UnsupportedOSType,
     ClientDownloadError,
     EmailPasswordNotFoundException,
     CommandFailed,
-    ResourceWrongStatusException
+    ResourceWrongStatusException,
+    UnknownCloneTypeException,
 )
 from src.utility.cmd import exec_cmd
 from src.utility.retry import retry
@@ -418,7 +426,7 @@ def email_reports():
         return
     recipients = []
     [recipients.append(mailid) for mailid in mailids.split(",")]
-    sender = config.REPORTING['email']['address']
+    sender = 'ocpclusterbot@redhat.com'
     msg = MIMEMultipart("alternative")
     msg["Subject"] = (
         f"ocp4mco-ci cluster deployment "
@@ -445,15 +453,7 @@ def email_reports():
             )
             msg.attach(part2)
     try:
-        s = smtplib.SMTP_SSL(
-            config.REPORTING["email"]["smtp_server"],
-            config.REPORTING["email"]["smtp_port"],
-        )
-        s.ehlo()
-        s.login(
-            sender,
-            get_email_pass(),
-        )
+        s = smtplib.SMTP(config.REPORTING["email"]["smtp_server"])
         s.sendmail(sender, recipients, msg.as_string())
         s.quit()
         logger.info(f"Results have been emailed to {recipients}")
@@ -502,3 +502,121 @@ def parse_html_for_email(soup):
         if column_header.string == "Login command":
             column.string = f"oc login https://api.{config.ENV_DATA['cluster_name']}.{config.ENV_DATA['base_domain']}:6443 -u {username} -p {password}"
         div.insert(0, table)
+def load_auth_config():
+    """
+    Load the authentication config YAML from /data/auth.yaml
+
+    Raises:
+        FileNotFoundError: if the auth config is not found
+
+    Returns:
+        dict: A dictionary reprensenting the YAML file
+
+    """
+    logger.info("Retrieving the authentication config dictionary")
+    auth_file = os.path.join(TOP_DIR, "data", AUTHYAML)
+    try:
+        with open(auth_file) as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError:
+        logger.warning(
+            f"Unable to find the authentication configuration at {auth_file}, "
+            f"please refer to the getting started guide ({AUTH_CONFIG_DOCS})"
+        )
+        return {}
+
+def clone_repo(
+    url,
+    location,
+    branch="master",
+    to_checkout=None,
+    clone_type="shallow",
+    force_checkout=False,
+):
+    """
+    Clone a repository or checkout latest changes if it already exists at
+        specified location.
+
+    Args:
+        url (str): location of the repository to clone
+        location (str): path where the repository will be cloned to
+        branch (str): branch name to checkout
+        to_checkout (str): commit id or tag to checkout
+        clone_type (str): type of clone (shallow, blobless, treeless and normal)
+            By default, shallow clone will be used. For normal clone use
+            clone_type as "normal".
+        force_checkout (bool): True for force checkout to branch.
+            force checkout will ignore the unmerged entries.
+
+    Raises:
+        UnknownCloneTypeException: In case of incorrect clone_type is used
+
+    """
+    if clone_type == "shallow":
+        if branch != "master":
+            git_params = "--no-single-branch --depth=1"
+        else:
+            git_params = "--depth=1"
+    elif clone_type == "blobless":
+        git_params = "--filter=blob:none"
+    elif clone_type == "treeless":
+        git_params = "--filter=tree:0"
+    elif clone_type == "normal":
+        git_params = ""
+    else:
+        raise UnknownCloneTypeException
+    """
+    Workaround as a temp solution since sno installer git is different from ocp installer if directory already exist
+    it checks if the repo already exist from SNO but the git is OCP it delete the installer directory and
+    the other way around
+    """
+    installer_path_exist = os.path.isdir(location)
+    if ("installer" in location) and installer_path_exist:
+        if "coreos" not in location:
+            installer_dir = os.path.join(EXTERNAL_DIR, "installer")
+            remote_output = exec_cmd(f"git -C {installer_dir} remote -v")
+            if (("srozen" in remote_output) and ("openshift" in url)) or (
+                ("openshift" in remote_output) and ("srozen" in url)
+            ):
+                shutil.rmtree(installer_dir)
+                logger.info(
+                    f"Waiting for 5 seconds to get all files and folder deleted from {installer_dir}"
+                )
+                time.sleep(5)
+
+    if not os.path.isdir(location):
+        logger.info("Cloning repository into %s", location)
+        exec_cmd(f"git clone {git_params} {url} {location}")
+    else:
+        logger.info("Repository already cloned at %s, skipping clone", location)
+        logger.info("Fetching latest changes from repository")
+        exec_cmd("git fetch --all", cwd=location)
+    logger.info("Checking out repository to specific branch: %s", branch)
+    if force_checkout:
+        exec_cmd(f"git checkout --force {branch}", cwd=location)
+    else:
+        exec_cmd(f"git checkout {branch}", cwd=location)
+    logger.info("Reset branch: %s with latest changes", branch)
+    exec_cmd(f"git reset --hard origin/{branch}", cwd=location)
+    if to_checkout:
+        exec_cmd(f"git checkout {to_checkout}", cwd=location)
+
+def get_non_acm_cluster_config(include_acm=False):
+    """
+    Get a list of non-acm cluster's config objects
+    Returns:
+        list: of cluster config objects
+    """
+    non_acm_list = []
+    for i in range(len(config.clusters)):
+        conf = config.clusters[i]
+        if i == config.get_acm_index() and (not conf.MULTICLUSTER["primary_cluster"] or not include_acm):
+            continue
+        else:
+            non_acm_list.append(config.clusters[i])
+    return non_acm_list
+
+def get_kube_config(cluster_path):
+    kube_config_path = get_kube_config_path(cluster_path)
+    with open(kube_config_path, 'r') as f:
+        return f.read()

@@ -22,6 +22,8 @@ setup(
         "requests==2.23.0",
         "bs4==0.0.1",
         "semantic-version==2.8.5",
+        "boto3~=1.17.78",
+        "botocore<1.21.0,>=1.20.112"
     ],
     entry_points={
         "console_scripts": [

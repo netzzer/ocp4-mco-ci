@@ -3,7 +3,10 @@ from src.ocs.ocp import OCP
 from src.utility import constants
 from src.utility.exceptions import (
     ResourceNotFoundError,
-    CommandFailed
+    CommandFailed,
+    NoInstallPlanForApproveFoundException,
+    CSVNotFound,
+    ChannelNotFound
 )
 from src.utility.retry import retry
 from src.utility.timeout import TimeoutSampler
@@ -118,6 +121,51 @@ class PackageManifest(OCP):
                 str(self.data),
             )
             raise ex
+
+    def get_current_csv(self, channel=None, csv_pattern=constants.OCS_CSV_PREFIX):
+        """
+        Returns current csv for default or specified channel
+
+        Args:
+            channel (str): Channel of the CSV
+            csv_pattern (str): CSV name pattern - needed for manual subscription
+                plan
+
+        Returns:
+            str: Current CSV name
+
+        Raises:
+            ResourceNameNotSpecifiedException: in case the name is not
+                specified.
+            ChannelNotFound: in case the required channel doesn't exist.
+
+        """
+        self.check_name_is_specified()
+        channel = channel if channel else self.get_default_channel()
+        channels = self.get_channels()
+        if self.subscription_plan_approval == "Manual":
+            try:
+                return self.get_installed_csv_from_install_plans(
+                    pattern=csv_pattern,
+                )
+            except NoInstallPlanForApproveFoundException:
+                logger.debug(
+                    "All install plans approved, continue to get the CSV name "
+                    "from the packageManifest"
+                )
+            except CSVNotFound:
+                logger.warning(
+                    "No CSV found from any installPlan, continue to get the CSV"
+                    " name from the packageManifest"
+                )
+        for _channel in channels:
+            if _channel["name"] == channel:
+                return _channel["currentCSV"]
+        channel_names = [_channel["name"] for _channel in channels]
+        raise ChannelNotFound(
+            f"Channel: {channel} not found in available channels: " f"{channel_names}"
+        )
+
     def wait_for_resource(
         self,
         resource_name="",

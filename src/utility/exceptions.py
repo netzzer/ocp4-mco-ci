@@ -30,5 +30,18 @@ class TimeoutExpiredError(Exception):
 
 class CommandFailed(Exception):
     pass
+
 class NoInstallPlanForApproveFoundException(Exception):
+    pass
+
+class UnknownCloneTypeException(Exception):
+    pass
+
+class CSVNotFound(Exception):
+    pass
+
+class ChannelNotFound(Exception):
+    pass
+
+class DRPrimaryNotFoundException(Exception):
     pass
