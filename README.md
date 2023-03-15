@@ -1,5 +1,20 @@
 # OCP4MCO-CI
 
+## Pre-requisite
+
+### Secrets
+1. `pull-secret` - Keep your pull secret under `data/pull-secret` file. Create `data` directory manually if not exists.
+2. `auth` - Keep your quay token under `data/auth` to install ACM pre-release downstream build.
+    In order to get a QUAY_TOKEN, go to your quay.io "Account Settings" page by selecting your username/icon in the top 
+    right corner of the page, then "Generate Encrypted Password".  Choose "Kubernetes Secret" and copy just secret text 
+    that follows .dockerconfigjson:. 
+   ```
+   quay:
+     cli_password: 'your quay token'
+   ```
+3. To deploy ACM downstream pre-released version, Add the pull-secrets for the `quay.io:443` registry with access to the quay.io/acm-d repository in your OpenShift main pull-secret.  [For more](https://github.com/stolostron/deploy#deploying-downstream-builds-snapshots-for-product-quality-engineering-only-20)
+4. To install ODF downstream pre-released version, Add the pull-secrets for the `registry.ci.openshift.org` registry with access to the quay.io/acm-d repository in your OpenShift main pull-secret.
+
 ## Installing
 1. Setup a python 3.7 virtual environment. This is actually quite easy to do now. Use hidden .venv or normal venv folder for virtual env as we are ignoring this in flake8 configuration in tox.
 ```
@@ -57,7 +72,7 @@ Common argument for all clusters:
 deploy-ocp  multicluster {cluster_count}  --ocp4mcoci-conf {override yaml file}  --email-ids {comma seperated mail ids without space} --cluster1 --cluster-name {cluster_name} --cluster-path {cluster_path} --cluster(n) --cluster-name {cluster_name} --cluster-path {cluster_path}
 ```
 
-### Example override yaml file
+### Example override yaml file [For more example](https://github.com/GowthamShanmugam/ocp4-mco-ci/tree/master/samples)
 ```commandline
 DEPLOYMENT:
   force_download_installer: false
@@ -65,16 +80,6 @@ DEPLOYMENT:
   ocp_mirror_url: "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp-dev-preview" 
 ```
 
-## Secrets
-1. `pull-secret` - Keep your pull secret under `data/pull-secret` file. Create `data` directory manually if not exists.
-2. `auth` - Keep your quay token under `data/auth` to install ACM pre-release downstream build.
-    In order to get a QUAY_TOKEN, go to your quay.io "Account Settings" page by selecting your username/icon in the top 
-    right corner of the page, then "Generate Encrypted Password".  Choose "Kubernetes Secret" and copy just secret text 
-    that follows .dockerconfigjson:.  [For more](https://github.com/stolostron/deploy#deploying-downstream-builds-snapshots-for-product-quality-engineering-only-20)
-   ```
-   quay:
-     cli_password: 'your quay token'
-   ```
 ## Email
 To send cluster information to email ID’s, postfix should be installed on fedora
 ```commandline
