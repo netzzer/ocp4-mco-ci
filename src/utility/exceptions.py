@@ -45,3 +45,9 @@ class ChannelNotFound(Exception):
 
 class DRPrimaryNotFoundException(Exception):
     pass
+
+class UnavailableResourceException(Exception):
+    pass
+
+class NotSupportedFunctionError(Exception):
+    pass

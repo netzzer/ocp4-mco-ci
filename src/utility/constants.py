@@ -22,6 +22,7 @@ MARKETPLACE_NAMESPACE = "openshift-marketplace"
 OLM_YAML = os.path.join(TEMPLATE_DIR, "deploy-with-olm.yaml")
 MCO_OLM_YAML = os.path.join(TEMPLATE_DIR, "mco-deploy-with-olm.yaml")
 AWS_IAM_POLICY_JSON = os.path.join(TEMPLATE_DIR, "aws-iam-policy.json")
+STORAGE_CLUSTER_YAML = os.path.join(TEMPLATE_DIR, "storage-cluster.yaml")
 
 # Operators
 OPERATOR_INTERNAL_SELECTOR = "ocs-operator-internal=true"
@@ -57,12 +58,20 @@ AUTH_CONFIG_DOCS = (
 
 # Deployment constants
 OCS_CSV_PREFIX = "ocs-operator"
-OPERATOR_NODE_LABEL = "cluster.ocs.openshift.io/openshift-storage=''"
 
 # Submariner constants
 SUBMARINER_GATEWAY_NODE_LABEL = "submariner.io/gateway=true"
 SUBMARINER_DOWNLOAD_URL = "https://get.submariner.io"
 AWS_IAM_POLICY_NAME = 'mirroring_pool'
 
-#other
+# other
 WORKER_MACHINE = "worker"
+
+# labels
+WORKER_LABEL = "node-role.kubernetes.io/worker"
+ZONE_LABEL = "topology.kubernetes.io/zone"
+INFRA_NODE_LABEL = "node-role.kubernetes.io/infra=''"
+OPERATOR_NODE_LABEL = "cluster.ocs.openshift.io/openshift-storage=''"
+
+# storage cluster
+STORAGE_CLUSTER_NAME = "ocs-storagecluster"

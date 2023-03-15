@@ -76,9 +76,10 @@ class Deployment(object):
                     log.info(f'Deploying OCS Operator on {framework.config.ENV_DATA["cluster_name"]}')
                     ocs_deployment = OCSDeployment()
                     ocs_deployment.deploy_prereq()
+                    log.info(f'Deploying OCS cluster on {framework.config.ENV_DATA["cluster_name"]}')
                     p = mp.Process(
                         target=OCSDeployment.deploy_ocs,
-                        args=(log_cli_level,)
+                        args=(framework.config.RUN["kubeconfig_location"], framework.config.ENV_DATA['skip_ocs_cluster_creation'],)
                     )
                     processes.append(p)
                 else:

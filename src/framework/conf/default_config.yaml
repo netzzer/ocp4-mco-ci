@@ -60,6 +60,7 @@ ENV_DATA:
   # OCS
   ocs_version: '4.12'
   skip_ocs_deployment: false
+  skip_ocs_cluster_creation: false
   # enable console plugin
   enable_ocs_plugin: true
   # you can overwrite the image for ocs operator catalog source by following parameter:
@@ -94,7 +95,7 @@ MULTICLUSTER:
 
   # only on non-acm cluster
   # it can be used for acm cluster when acm cluster is also one managed cluster
-  import_as_managed_cluster: true
+  import_as_managed_cluster: false
 
 # Section for reporting configuration
 REPORTING:
