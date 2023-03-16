@@ -59,10 +59,10 @@ ENV_DATA:
 
   # OCS
   ocs_version: '4.12'
-  skip_ocs_deployment: false
-  skip_ocs_cluster_creation: false
+  skip_ocs_deployment: true
+  skip_ocs_cluster_creation: true
   # enable console plugin
-  enable_ocs_plugin: true
+  enable_ocs_plugin: false
   # you can overwrite the image for ocs operator catalog source by following parameter:
   # ocs_registry_image: "quay.io/rhceph-dev/ocs-olm-operator:4.2-32.9b6c93e.master"
   default_ocs_registry_image: "quay.io/rhceph-dev/ocs-registry:latest"
@@ -93,9 +93,12 @@ MULTICLUSTER:
   submariner_url: "https://get.submariner.io"
   submariner_info_file: "broker-info.subm"
 
-  # only on non-acm cluster
-  # it can be used for acm cluster when acm cluster is also one managed cluster
-  import_as_managed_cluster: false
+  # ACM managed cluster import
+  import_managed_clusters: false
+
+  # SSL access across clusters
+  # For more info: https://docs.google.com/document/d/1MfSmXbiGI76As3_nNElsdmibpSIduxi8jquwO1HGuYY/edit#heading=h.bh2etop7o3f
+  exchange_ssl_certificate: false
 
 # Section for reporting configuration
 REPORTING:

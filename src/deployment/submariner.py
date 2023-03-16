@@ -7,6 +7,7 @@ import shutil
 import os
 import boto3
 import json
+from src.utility.retry import retry
 from botocore.exceptions import ClientError
 from src.framework import config
 from src.utility.cmd import exec_cmd
@@ -133,7 +134,7 @@ class Submariner(object):
             try:
                 exec_cmd(cmd)
             except CommandFailed:
-                logger.exception("Failed to download submariner binary")
+                logger.error("Failed to download submariner binary")
                 raise
 
             # Copy submariner from ~/.local/bin to ocs-ci/bin
@@ -142,45 +143,9 @@ class Submariner(object):
                 os.path.expanduser("~/.local/bin/subctl"),
                 os.path.join(config.RUN["bin_dir"], "subctl"),
             )
-
-    def submariner_configure_upstream(self):
-        """
-        Deploy and Configure upstream submariner
-        Raises:
-            DRPrimaryNotFoundException: If there is no designated primary cluster found
-        """
-        if self.designated_broker_cluster_index < 0:
-            raise DRPrimaryNotFoundException("Designated primary cluster not found")
-
-        # Deploy broker on designated cluster
-        # follow this config switch statement carefully to be mindful
-        # about the context with which we are performing the operations
-        config.switch_ctx(self.designated_broker_cluster_index)
-        logger.info(f"Switched context: {config.cluster_ctx.ENV_DATA['cluster_name']}")
-
-        deploy_broker_cmd = "deploy-broker"
-        try:
-            run_subctl_cmd(deploy_broker_cmd)
-        except CommandFailed:
-            logger.exception("Failed to deploy submariner broker")
-            raise
-
-        create_aws_policy()
-        restore_index = config.cur_index
-        for cluster in get_non_acm_cluster_config(True):
-            config.switch_ctx(cluster.MULTICLUSTER["multicluster_index"])
-            assign_aws_policy(cluster.ENV_DATA['cluster_name'])
-            infra_id = get_infra_id(cluster.ENV_DATA['cluster_path'])
-            prepare_cmd = f'cloud prepare aws --infra-id {infra_id}  --region {cluster.ENV_DATA["region"]}'
-            try:
-                run_subctl_cmd(prepare_cmd)
-            except CommandFailed:
-                logger.exception("Unable to prepare aws cloud for submariner")
-                raise
-        config.switch_ctx(restore_index)
-
+    @retry(CommandFailed, tries=5, delay=60, backoff=1)
+    def join_clusters(self):
         # Join all the clusters (except ACM cluster in case of hub deployment)
-        time.sleep(120)
         for cluster in config.clusters:
             cluster_index = cluster.MULTICLUSTER["multicluster_index"]
             if cluster_index != config.get_acm_index() or config.MULTICLUSTER["primary_cluster"]:
@@ -202,16 +167,64 @@ class Submariner(object):
 
                 self.cluster_seq = self.cluster_seq + 1
                 self.dr_only_list.append(cluster_index)
-        # Verify submariner connectivity between clusters(excluding ACM)
-        time.sleep(120)
+
+    @retry(CommandFailed, tries=5, delay=30, backoff=1)
+    def deploy_broker(self):
+        # Deploy broker on designated cluster
+        # follow this config switch statement carefully to be mindful
+        # about the context with which we are performing the operations
+        config.switch_ctx(self.designated_broker_cluster_index)
+        logger.info(f"Switched context: {config.cluster_ctx.ENV_DATA['cluster_name']}")
+
+        deploy_broker_cmd = "deploy-broker"
+        try:
+            run_subctl_cmd(deploy_broker_cmd)
+        except CommandFailed:
+            logger.exception("Failed to deploy submariner broker")
+            raise
+
+    @retry(CommandFailed, tries=5, delay=30, backoff=1)
+    def prepare_aws_cloud(self, cluster):
+        infra_id = get_infra_id(cluster.ENV_DATA['cluster_path'])
+        prepare_cmd = f'cloud prepare aws --infra-id {infra_id}  --region {cluster.ENV_DATA["region"]}'
+        run_subctl_cmd(prepare_cmd)
+
+    @retry(CommandFailed, tries=5, delay=60, backoff=1)
+    def verify_connections(self):
         for i in self.dr_only_list:
             kube_config_path = get_kube_config_path(config.clusters[i].ENV_DATA["cluster_path"])
             connect_check = f"show connections --kubeconfig {kube_config_path}"
             try:
                 run_subctl_cmd(connect_check)
-            except Exception:
+            except CommandFailed:
                 logger.error("Submariner verification has issues")
                 raise
+
+    def submariner_configure_upstream(self):
+        """
+        Deploy and Configure upstream submariner
+        Raises:
+            DRPrimaryNotFoundException: If there is no designated primary cluster found
+        """
+        if self.designated_broker_cluster_index < 0:
+            raise DRPrimaryNotFoundException("Designated primary cluster not found")
+
+        self.deploy_broker()
+
+        create_aws_policy()
+        restore_index = config.cur_index
+        for cluster in get_non_acm_cluster_config(True):
+            config.switch_ctx(cluster.MULTICLUSTER["multicluster_index"])
+            assign_aws_policy(cluster.ENV_DATA['cluster_name'])
+            try:
+                self.prepare_aws_cloud(cluster)
+            except CommandFailed:
+                logger.exception("Unable to prepare aws cloud for submariner")
+                raise
+        config.switch_ctx(restore_index)
+        self.join_clusters()
+        # verify command throws error
+        self.verify_connections()
 
     def get_primary_cluster_index(self):
         """

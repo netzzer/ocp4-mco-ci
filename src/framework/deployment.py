@@ -12,7 +12,7 @@ from src.deployment.import_managed_cluster import ImportManagedCluster
 from src import framework
 from src.framework.logger_factory import set_log_record_factory
 from src.utility.constants import LOG_FORMAT
-from src.utility.utils import (is_cluster_running, email_reports, get_non_acm_cluster_config)
+from src.utility.utils import (is_cluster_running, email_reports, get_non_acm_cluster_config, get_kube_config_path)
 
 log = logging.getLogger(__name__)
 current_factory = logging.getLogRecordFactory()
@@ -77,10 +77,9 @@ class Deployment(object):
                     log.info("Deploying OCS Operator")
                     ocs_deployment = OCSDeployment()
                     ocs_deployment.deploy_prereq()
-                    log.info("Creating OCS cluster")
                     p = mp.Process(
                         target=OCSDeployment.deploy_ocs,
-                        args=(framework.config.RUN["kubeconfig_location"], framework.config.ENV_DATA['skip_ocs_cluster_creation'],)
+                        args=(get_kube_config_path(framework.config.ENV_DATA["cluster_path"]), framework.config.ENV_DATA['skip_ocs_cluster_creation'],)
                     )
                     processes.append(p)
                 else:
@@ -89,6 +88,7 @@ class Deployment(object):
                 log.error("Unable to deploy OCS cluster", ex)
         framework.config.switch_default_cluster_ctx()
         if len(processes) > 0:
+            log.info(f"Creating OCS cluster on {len(processes)} clusters")
             [proc.start() for proc in processes]
             # complete the processes
             for proc in processes:
@@ -147,7 +147,7 @@ class Deployment(object):
             for i in range(framework.config.nclusters):
                 framework.config.switch_ctx(i)
                 if framework.config.multicluster and framework.config.get_acm_index() == i:
-                    if framework.config.MULTICLUSTER['import_as_managed_cluster']:
+                    if framework.config.MULTICLUSTER['import_managed_clusters']:
                         for cluster in get_non_acm_cluster_config():
                             log.info(f"Importing cluster {cluster.ENV_DATA['cluster_name']} into ACM")
                             import_managed_cluster = ImportManagedCluster(cluster.ENV_DATA['cluster_name'], cluster.ENV_DATA['cluster_path'])
@@ -171,6 +171,7 @@ class Deployment(object):
                             log.info("Fetching ssl secrets")
                             ssl_certificate.get_certificate()
                         ssl_certificate.get_certificate_file_path()
+                        log.warning(ssl_certificate.ssl_certificate_path)
                         for cluster in managed_clusters:
                             framework.config.switch_ctx(cluster.MULTICLUSTER["multicluster_index"])
                             log.info("Exchanging ssl secrets")

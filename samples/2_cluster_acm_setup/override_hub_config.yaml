@@ -1,5 +1,5 @@
 DEPLOYMENT:
-  force_download_installer: true
+  force_download_installer: false
   installer_version : "latest-4.13"
   ssh_key: "/home/gshanmug/.ssh/id_rsa.pub"
   ocp_mirror_url: "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp-dev-preview"
@@ -18,6 +18,6 @@ MULTICLUSTER:
   skip_mco_deployment: false
   enable_mco_plugin: true
   deploy_acm_hub_cluster: true
-  import_as_managed_cluster: true
+  import_managed_clusters: true
   exchange_ssl_certificate: true
-  acm_unreleased_image: "2.8.0-DOWNSTREAM-2023-03-14-15-47-31"
+  acm_unreleased_image: "2.8.0-DOWNSTREAM-2023-03-18-11-03-10"
