@@ -23,7 +23,8 @@ setup(
         "bs4==0.0.1",
         "semantic-version==2.8.5",
         "boto3~=1.17.78",
-        "botocore<1.21.0,>=1.20.112"
+        "botocore<1.21.0,>=1.20.112",
+        "urllib3==1.25.11"
     ],
     entry_points={
         "console_scripts": [

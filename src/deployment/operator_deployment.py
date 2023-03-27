@@ -8,6 +8,7 @@ from src.ocs.resources.catalog_source import disable_specific_source
 from src.ocs.resources.catalog_source import CatalogSource
 from src.utility.utils import get_kube_config_path
 from src.utility.timeout import TimeoutSampler
+from src.utility.exceptions import CommandFailed
 from src.ocs import ocp
 
 logger = logging.getLogger(__name__)
@@ -104,14 +105,23 @@ class OperatorDeployment(object):
         Enables console plugin for ODF
         """
         if enable_console:
-            logger.info("Enabling console plugin")
-            ocp_obj = ocp.OCP()
-            patch = '\'[{"op": "add", "path": "/spec/plugins/-", "value": "$name"}]\''
-            patch = patch.replace("$name", name)
-            patch_cmd = (
-                f"patch console.operator cluster -n {self.namespace}"
-                f" --type json -p {patch}"
-            )
-            ocp_obj.exec_oc_cmd(command=patch_cmd)
+            try:
+                logger.info("Enabling console plugin")
+                ocp_obj = ocp.OCP()
+                patch = '\'[{"op": "add", "path": "/spec/plugins/-", "value": "$name"}]\''
+                patch = patch.replace("$name", name)
+                patch_cmd = (
+                    f"patch console.operator cluster -n {self.namespace}"
+                    f" --type json -p {patch}"
+                )
+                ocp_obj.exec_oc_cmd(command=patch_cmd)
+            except CommandFailed:
+                patch = '\'[{"op": "add", "path": "/spec/plugins", "value": ["$name"]}]\''
+                patch = patch.replace("$name", name)
+                patch_cmd = (
+                    f"patch console.operator cluster -n {self.namespace}"
+                    f" --type json -p {patch}"
+                )
+                ocp_obj.exec_oc_cmd(command=patch_cmd)
         else:
             logger.debug(f"Skipping console plugin for {name} operator ")

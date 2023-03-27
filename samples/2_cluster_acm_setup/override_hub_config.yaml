@@ -1,9 +1,11 @@
 DEPLOYMENT:
   force_download_installer: false
   installer_version : "latest-4.13"
-  ssh_key: "/home/gshanmug/.ssh/id_rsa.pub"
+  ssh_key: "~/.ssh/id_rsa.pub"
   ocp_mirror_url: "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp-dev-preview"
 ENV_DATA:
+  service_network_cidr: "172.31.0.0/16"
+  cluster_network_cidr: "10.132.0.0/14"
   skip_ocp_deployment: false
   skip_ocs_deployment: false
   skip_ocs_cluster_creation: false
@@ -20,4 +22,4 @@ MULTICLUSTER:
   deploy_acm_hub_cluster: true
   import_managed_clusters: true
   exchange_ssl_certificate: true
-  acm_unreleased_image: "2.8.0-DOWNSTREAM-2023-03-18-11-03-10"
+  acm_unreleased_image: "2.8.0-DOWNSTREAM-2023-03-23-14-13-20"
