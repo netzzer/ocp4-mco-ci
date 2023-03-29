@@ -24,6 +24,7 @@ MCO_OLM_YAML = os.path.join(TEMPLATE_DIR, "mco-deploy-with-olm.yaml")
 AWS_IAM_POLICY_JSON = os.path.join(TEMPLATE_DIR, "aws-iam-policy.json")
 STORAGE_CLUSTER_YAML = os.path.join(TEMPLATE_DIR, "storage-cluster.yaml")
 SSL_CERTIFICATE_YAML = os.path.join(TEMPLATE_DIR, "ssl-certificate.yaml")
+NAMESPACE_TEMPLATE = os.path.join(TEMPLATE_DIR, "namespace.yaml")
 
 # Operators
 OPERATOR_INTERNAL_SELECTOR = "ocs-operator-internal=true"
@@ -36,8 +37,18 @@ OCS_PLUGIN_NAME = "odf-console"
 MCO_PLUGIN_NAME = "odf-multicluster-console"
 
 # ACM Hub Parameters
+ACM_HUB_OPERATORGROUP_YAML = os.path.join(
+    TEMPLATE_DIR, "acm-deployment", "operatorgroup.yaml"
+)
+ACM_HUB_SUBSCRIPTION_YAML = os.path.join(
+    TEMPLATE_DIR, "acm-deployment", "subscription.yaml"
+)
+ACM_HUB_MULTICLUSTERHUB_YAML = os.path.join(
+    TEMPLATE_DIR, "acm-deployment", "multiclusterhub.yaml"
+)
 ACM_MULTICLUSTER_HUB = "MultiClusterHub"
 ACM_HUB_NAMESPACE = "open-cluster-management"
+ACM_HUB_OPERATOR_NAME = "advanced-cluster-management"
 ACM_MULTICLUSTER_RESOURCE = "multiclusterhub"
 ACM_HUB_UNRELEASED_DEPLOY_REPO = "https://github.com/stolostron/deploy.git"
 ACM_HUB_UNRELEASED_PULL_SECRET_TEMPLATE = "pull-secret.yaml.j2"

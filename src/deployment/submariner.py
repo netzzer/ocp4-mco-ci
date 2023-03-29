@@ -1,5 +1,4 @@
 import logging
-import time
 
 import requests
 import tempfile
@@ -65,6 +64,30 @@ def assign_aws_policy(cluster_name):
     except ClientError as error:
         logger.error('Unable to assign aws policy')
         raise error
+
+def remove_aws_policy(cluster_name):
+    try:
+        print('Removing a policy to aws API user')
+        policy = "arn:aws:iam::" + get_aws_user_id() + ":policy/" + constants.AWS_IAM_POLICY_NAME
+        username = get_api_username(cluster_name)
+        iam.detach_user_policy(
+            UserName=username,
+            PolicyArn=policy
+        )
+    except ClientError as error:
+        logger.error('Unable to remove aws policy')
+        raise error
+
+
+def create_aws_policy():
+    policy = open(os.path.join(constants.AWS_IAM_POLICY_JSON), 'r')
+    try:
+        iam.create_policy(
+            PolicyName=constants.AWS_IAM_POLICY_NAME,
+            PolicyDocument=policy.read()
+        )
+    except iam.exceptions.EntityAlreadyExistsException as ex:
+        logger.warning(f'AWS policy {constants.AWS_IAM_POLICY_NAME} already exists')
 
 def create_aws_policy():
     policy = open(os.path.join(constants.AWS_IAM_POLICY_JSON), 'r')
@@ -143,30 +166,30 @@ class Submariner(object):
                 os.path.expanduser("~/.local/bin/subctl"),
                 os.path.join(config.RUN["bin_dir"], "subctl"),
             )
-    @retry(CommandFailed, tries=5, delay=60, backoff=1)
-    def join_clusters(self):
-        # Join all the clusters (except ACM cluster in case of hub deployment)
-        for cluster in config.clusters:
-            cluster_index = cluster.MULTICLUSTER["multicluster_index"]
-            if cluster_index != config.get_acm_index() or config.MULTICLUSTER["primary_cluster"]:
-                join_cmd = (
-                    f"join --kubeconfig {get_kube_config_path(cluster.ENV_DATA['cluster_path'])} "
-                    f"{config.MULTICLUSTER['submariner_info_file']} "
-                    f"--clusterid c{self.cluster_seq} --natt=false"
-                )
-                try:
-                    run_subctl_cmd(
-                        join_cmd,
-                    )
-                    logger.info(
-                        f"Subctl join succeded for {cluster.ENV_DATA['cluster_name']}"
-                    )
-                except CommandFailed:
-                    logger.exception("Cluster failed to join")
-                    raise
 
-                self.cluster_seq = self.cluster_seq + 1
-                self.dr_only_list.append(cluster_index)
+    @retry(CommandFailed, tries=5, delay=60, backoff=1)
+    def join_cluster(self, cluster):
+        # Join all the clusters (except ACM cluster in case of hub deployment)
+        cluster_index = cluster.MULTICLUSTER["multicluster_index"]
+        if cluster_index != config.get_acm_index() or config.MULTICLUSTER["primary_cluster"]:
+            join_cmd = (
+                f"join --kubeconfig {get_kube_config_path(cluster.ENV_DATA['cluster_path'])} "
+                f"{config.MULTICLUSTER['submariner_info_file']} "
+                f"--clusterid c{self.cluster_seq} --natt=false"
+            )
+            try:
+                run_subctl_cmd(
+                    join_cmd,
+                )
+                logger.info(
+                    f"Subctl join succeded for {cluster.ENV_DATA['cluster_name']}"
+                )
+            except CommandFailed:
+                logger.exception("Cluster failed to join")
+                raise
+
+            self.cluster_seq = self.cluster_seq + 1
+            self.dr_only_list.append(cluster_index)
 
     @retry(CommandFailed, tries=5, delay=30, backoff=1)
     def deploy_broker(self):
@@ -210,7 +233,6 @@ class Submariner(object):
             raise DRPrimaryNotFoundException("Designated primary cluster not found")
 
         self.deploy_broker()
-
         create_aws_policy()
         restore_index = config.cur_index
         for cluster in get_non_acm_cluster_config(True):
@@ -218,11 +240,11 @@ class Submariner(object):
             assign_aws_policy(cluster.ENV_DATA['cluster_name'])
             try:
                 self.prepare_aws_cloud(cluster)
+                self.join_cluster(cluster)
             except CommandFailed:
                 logger.exception("Unable to prepare aws cloud for submariner")
                 raise
         config.switch_ctx(restore_index)
-        self.join_clusters()
         # verify command throws error
         self.verify_connections()
 

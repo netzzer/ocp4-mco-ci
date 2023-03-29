@@ -1,16 +1,19 @@
 import logging
 import os
 import base64
+import tempfile
+import time
 from subprocess import PIPE, Popen
 
 from src.framework import config
+from src.ocs.resources.package_manifest import PackageManifest
 from src.utility import (constants, templating)
 from src.utility.utils import (load_auth_config, clone_repo)
 from src.utility.cmd import exec_cmd
 from src.utility.exceptions import CommandFailed
+from src.ocs.resources.csv import CSV
 from src.ocs.ocp import OCP
 from src.deployment.operator_deployment import OperatorDeployment
-
 
 
 logger = logging.getLogger(__name__)
@@ -106,4 +109,59 @@ class ACMDeployment(OperatorDeployment):
             logger.error(stderr)
             raise CommandFailed("open-cluster-management deploy script error")
 
+        self.validate_acm_hub_install()
+
+    def deploy_acm_hub_released(self):
+        """
+        Handle ACM HUB released image deployment
+        """
+        channel = config.MULTICLUSTER.get("acm_hub_channel")
+        logger.info("Creating ACM HUB namespace")
+        acm_hub_namespace_yaml_data = templating.load_yaml(constants.NAMESPACE_TEMPLATE)
+        acm_hub_namespace_yaml_data["metadata"]["name"] = constants.ACM_HUB_NAMESPACE
+        acm_hub_namespace_manifest = tempfile.NamedTemporaryFile(
+            mode="w+", prefix="acm_hub_namespace_manifest", delete=False
+        )
+        templating.dump_data_to_temp_yaml(
+            acm_hub_namespace_yaml_data, acm_hub_namespace_manifest.name
+        )
+        exec_cmd(f"oc create -f {acm_hub_namespace_manifest.name}")
+
+        logger.info("Creating OperationGroup for ACM deployment")
+        package_manifest = PackageManifest(
+            resource_name=constants.ACM_HUB_OPERATOR_NAME,
+        )
+
+        exec_cmd(
+            f"oc create -f {constants.ACM_HUB_OPERATORGROUP_YAML} -n {constants.ACM_HUB_NAMESPACE}"
+        )
+
+        logger.info("Creating ACM HUB Subscription")
+        acm_hub_subscription_yaml_data = templating.load_yaml(
+            constants.ACM_HUB_SUBSCRIPTION_YAML
+        )
+        acm_hub_subscription_yaml_data["spec"]["channel"] = channel
+        acm_hub_subscription_yaml_data["spec"][
+            "startingCSV"
+        ] = package_manifest.get_current_csv(
+            channel=channel, csv_pattern=constants.ACM_HUB_OPERATOR_NAME
+        )
+
+        acm_hub_subscription_manifest = tempfile.NamedTemporaryFile(
+            mode="w+", prefix="acm_hub_subscription_manifest", delete=False
+        )
+        templating.dump_data_to_temp_yaml(
+            acm_hub_subscription_yaml_data, acm_hub_subscription_manifest.name
+        )
+        exec_cmd(f"oc create -f {acm_hub_subscription_manifest.name}")
+        logger.info("Sleeping for 90 seconds after subscribing to ACM")
+        time.sleep(90)
+        csv_name = package_manifest.get_current_csv(channel=channel)
+        csv = CSV(resource_name=csv_name, namespace=constants.ACM_HUB_NAMESPACE)
+        csv.wait_for_phase("Succeeded", timeout=720)
+        logger.info("ACM HUB Operator Deployment Succeeded")
+        logger.info("Creating MultiCluster Hub")
+        exec_cmd(
+            f"oc create -f {constants.ACM_HUB_MULTICLUSTERHUB_YAML} -n {constants.ACM_HUB_NAMESPACE}"
+        )
         self.validate_acm_hub_install()

@@ -74,20 +74,29 @@ ENV_DATA:
 MULTICLUSTER:
   # Index of this cluster Config in a list of cluster Configs
   multicluster_index: 0
+  # Indicating the current cluster is acm cluster
   acm_cluster: false
+  # Indicating the current cluster is a DR primary cluster
+  # acm cluster also can be DR primary cluster
   primary_cluster: false
 
   # MCO
+  # To control MCO installation
   skip_mco_deployment: true
   # enable console plugin
   enable_mco_plugin: false
 
   # ACM HUB deployment
+  # To control acm installation
   deploy_acm_hub_cluster: false
+  acm_hub_unreleased: false
+  # only for released acm version
+  acm_hub_channel: 'release-2.5'
   # override this using: acm_unreleased_image
   default_acm_unreleased_image: "2.5.2-DOWNSTREAM-2022-07-29-15-56-49"
 
   # Submariner
+  # To control submainer configuration
   configure_submariner: false
   submariner_source: "upstream"
   submariner_url: "https://get.submariner.io"

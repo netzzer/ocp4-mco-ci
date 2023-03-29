@@ -120,7 +120,10 @@ class Deployment(object):
                     if framework.config.MULTICLUSTER["deploy_acm_hub_cluster"]:
                         log.info("Deploying ACM")
                         acm_deployment = ACMDeployment()
-                        acm_deployment.deploy_acm_hub_unreleased()
+                        if framework.config.MULTICLUSTER.get("acm_hub_unreleased"):
+                            acm_deployment.deploy_acm_hub_unreleased()
+                        else:
+                            acm_deployment.deploy_acm_hub_released()
                     else:
                         log.warning("ACM deployment will be skipped")
             except Exception as ex:
