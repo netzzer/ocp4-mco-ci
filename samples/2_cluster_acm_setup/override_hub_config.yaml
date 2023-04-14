@@ -27,3 +27,7 @@ MULTICLUSTER:
   # enable this for ACM un-released build
   # acm_hub_unreleased: true
   # acm_unreleased_image: "2.8.0-DOWNSTREAM-2023-03-23-14-13-20"
+# uncomment reporting for email
+#REPORTING:
+#  email:
+#    skip_notification: false

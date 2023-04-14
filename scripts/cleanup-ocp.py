@@ -13,7 +13,8 @@ def job(t):
     try:
         print("executing")
         suffix = get_suffix()
-        os.system(f"cleanup-ocp --cluster-paths /tmp/odfcluster1-{suffix} /tmp/odfcluster2-{suffix}")
+        os.system(f"cleanup-ocp  --cluster-name odfcluster1-{suffix} --cluster-path /tmp/odfcluster1-{suffix}")
+        os.system(f"cleanup-ocp  --cluster-name odfcluster2-{suffix} --cluster-path /tmp/odfcluster2-{suffix}")
     except Exception:
         pass
 
@@ -23,8 +24,6 @@ for i in ["21:00"]:
     schedule.every().wednesday.at(i).do(job, i)
     schedule.every().thursday.at(i).do(job, i)
     schedule.every().friday.at(i).do(job, i)
-for i in ["12:00"]:
-    schedule.every().sunday.at(i).do(job, i)
 
 while True:
     schedule.run_pending()

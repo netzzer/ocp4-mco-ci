@@ -112,6 +112,6 @@ MULTICLUSTER:
 # Section for reporting configuration
 REPORTING:
   email:
-    skip_notification: false
+    skip_notification: true
     smtp_server: "localhost"
     recipients: '' # comma separated email ids without space

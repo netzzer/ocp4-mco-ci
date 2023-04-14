@@ -56,8 +56,8 @@ class Deployment(object):
                         processes.append(p)
                 else:
                     log.warning("OCP deployment will be skipped")
-            except Exception:
-                log.error("Unable to deploy OCP cluster !")
+            except Exception as ex:
+                log.error("Unable to deploy OCP cluster !", ex)
         framework.config.switch_default_cluster_ctx()
         if len(processes) > 0:
             [proc.start() for proc in processes]
