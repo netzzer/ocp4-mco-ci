@@ -12,7 +12,7 @@ def job(t):
     try:
         print("executing")
         suffix = get_suffix()
-        os.system(f"deploy-ocp  --email-ids almartin@redhat.com,ialmeida@redhat.com,badhikar@redhat.com --ocp4mcoci-conf samples/deploy_ocp_cluster/override_config.yaml --cluster-name odfcluster-uk-{suffix} --cluster-path /tmp/odfcluster-uk-{suffix}")
+        os.system(f"deploy-ocp  --email-ids almartin@redhat.com,ialmeida@redhat.com,badhikar@redhat.com,nthomas@redhat.com,skatiyar@redhat.com --ocp4mcoci-conf samples/deploy_ocp_cluster/override_config.yaml --cluster-name odfcluster-uk-{suffix} --cluster-path /tmp/odfcluster-uk-{suffix}")
     except Exception:
         pass
 
