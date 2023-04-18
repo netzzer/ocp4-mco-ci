@@ -1,3 +1,5 @@
+RUN:
+  client_version: 'latest-4.13'
 DEPLOYMENT:
   force_download_installer: false
   installer_version : "latest-4.13"
