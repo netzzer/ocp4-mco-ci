@@ -76,7 +76,6 @@ def remove_aws_policy(cluster_name):
         )
     except ClientError as error:
         logger.error('Unable to remove aws policy')
-        raise error
 
 
 def create_aws_policy():
