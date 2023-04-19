@@ -13,7 +13,7 @@ def job(t):
     try:
         print("executing")
         suffix = get_suffix()
-        os.system(f"cleanup-ocp --cluster-path /tmp/odfcluster-uk-{suffix}")
+        os.system(f"cleanup-ocp --cluster-name odfcluster-uk-{suffix} --cluster-path /tmp/odfcluster-uk-{suffix}")
     except Exception:
         pass
 
