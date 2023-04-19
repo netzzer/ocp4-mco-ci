@@ -13,7 +13,7 @@
      cli_password: 'your quay token'
    ```
 3. To deploy ACM downstream pre-released version, Add the pull-secrets for the `quay.io:443` registry with access to the quay.io/acm-d repository in your OpenShift main pull-secret.  [For more](https://github.com/stolostron/deploy#deploying-downstream-builds-snapshots-for-product-quality-engineering-only-20)
-4. To install ODF downstream pre-released version, Add the pull-secrets for the `registry.ci.openshift.org` registry with access to the quay.io/acm-d repository in your OpenShift main pull-secret.
+4. To install ODF downstream pre-released version, Add the pull-secrets for the `quay.io/rhceph-dev` registry with access to the quay.io/rhceph-dev repository in your OpenShift main pull-secret.
 
 ## Installing
 1. Setup a python 3.7 virtual environment. This is actually quite easy to do now. Use hidden .venv or normal venv folder for virtual env as we are ignoring this in flake8 configuration in tox.
