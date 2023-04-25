@@ -70,10 +70,11 @@ def remove_aws_policy(cluster_name):
         print('Removing a policy to aws API user')
         policy = "arn:aws:iam::" + get_aws_user_id() + ":policy/" + constants.AWS_IAM_POLICY_NAME
         username = get_api_username(cluster_name)
-        iam.detach_user_policy(
-            UserName=username,
-            PolicyArn=policy
-        )
+        if username != '':
+            iam.detach_user_policy(
+                UserName=username,
+                PolicyArn=policy
+            )
     except ClientError as error:
         logger.error('Unable to remove aws policy')
 
