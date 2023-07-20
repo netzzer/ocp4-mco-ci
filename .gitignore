@@ -7,3 +7,5 @@ build/*
 bin/
 dist
 data/*
+external
+*.swp

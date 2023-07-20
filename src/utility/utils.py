@@ -8,7 +8,6 @@ import smtplib
 import yaml
 import shutil
 import time
-from yaml.loader import SafeLoader
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -24,6 +23,9 @@ from src.utility.constants import (
     AUTH_CONFIG_DOCS,
     AUTHYAML,
     EXTERNAL_DIR,
+    WORKER_MACHINE,
+    MASTER_MACHINE,
+    MACHINECONFIGPOOL
 )
 from src.utility.exceptions import (
     UnsupportedOSType,
@@ -620,3 +622,40 @@ def get_kube_config(cluster_path):
     kube_config_path = get_kube_config_path(cluster_path)
     with open(kube_config_path, 'r') as f:
         return f.read()
+
+def wait_for_machineconfigpool_status(node_type, timeout=900, skip_tls_verify=False):
+    """
+    Check for Machineconfigpool status
+
+    Args:
+        node_type (str): The node type to check machineconfigpool
+            status is updated.
+            e.g: worker, master and all if we want to check for all nodes
+        timeout (int): Time in seconds to wait
+        skip_tls_verify (bool): True if allow skipping TLS verification
+
+    """
+    logger.info("Sleeping for 60 sec to start update machineconfigpool status")
+    time.sleep(60)
+    # importing here to avoid dependencies
+    from src.ocs import ocp
+
+    node_types = [node_type]
+    if node_type == "all":
+        node_types = [f"{WORKER_MACHINE}", f"{MASTER_MACHINE}"]
+
+    for role in node_types:
+        logger.info(f"Checking machineconfigpool status for {role} nodes")
+        ocp_obj = ocp.OCP(
+            kind=MACHINECONFIGPOOL,
+            resource_name=role,
+            skip_tls_verify=skip_tls_verify,
+        )
+        machine_count = ocp_obj.get()["status"]["machineCount"]
+
+        assert ocp_obj.wait_for_resource(
+            condition=str(machine_count),
+            column="READYMACHINECOUNT",
+            timeout=timeout,
+            sleep=5,
+        )

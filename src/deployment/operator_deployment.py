@@ -1,3 +1,4 @@
+import os
 import logging
 import tempfile
 
@@ -6,12 +7,58 @@ from src.utility.cmd import exec_cmd
 from src.utility import (constants, templating)
 from src.ocs.resources.catalog_source import disable_specific_source
 from src.ocs.resources.catalog_source import CatalogSource
-from src.utility.utils import get_kube_config_path
+from src.utility.utils import (
+    get_kube_config_path,
+    create_directory_path,
+    wait_for_machineconfigpool_status
+)
 from src.utility.timeout import TimeoutSampler
 from src.utility.exceptions import CommandFailed
 from src.ocs import ocp
 
 logger = logging.getLogger(__name__)
+
+def get_and_apply_icsp_from_catalog(image, apply=True, insecure=False):
+    """
+    Get ICSP from catalog image (if exists) and apply it on the cluster (if
+    requested).
+
+    Args:
+        image (str): catalog image of ocs registry.
+        apply (bool): controls if the ICSP should be applied or not
+            (default: true)
+        insecure (bool): If True, it allows push and pull operations to registries to be made over HTTP
+
+    Returns:
+        str: path to the icsp.yaml file or empty string, if icsp not available
+            in the catalog image
+
+    """
+
+    icsp_file_location = "/icsp.yaml"
+    icsp_file_dest_dir = os.path.join(
+        config.ENV_DATA.get("cluster_path"), f"icsp-{config.RUN['run_id']}"
+    )
+    icsp_file_dest_location = os.path.join(icsp_file_dest_dir, "icsp.yaml")
+    pull_secret_path = os.path.join(constants.TOP_DIR, "data", "pull-secret")
+    create_directory_path(icsp_file_dest_dir)
+    cmd = (
+        f"oc image extract --filter-by-os linux/amd64 --registry-config {pull_secret_path} "
+        f"{image} --confirm "
+        f"--path {icsp_file_location}:{icsp_file_dest_dir}"
+    )
+    if insecure:
+        cmd = f"{cmd} --insecure"
+    exec_cmd(cmd)
+    if not os.path.exists(icsp_file_dest_location):
+        return ""
+
+    if apply:
+        exec_cmd(f"oc apply -f {icsp_file_dest_location}")
+        wait_for_machineconfigpool_status("all")
+
+    return icsp_file_dest_location
+
 class OperatorDeployment(object):
     def __init__(self, namespace):
         self.namespace = namespace
@@ -48,6 +95,8 @@ class OperatorDeployment(object):
             catalog_source_data["spec"][
                 "image"
             ] = f"{image}:{image_tag if image_tag else 'latest'}"
+
+        get_and_apply_icsp_from_catalog(image=image, insecure=True)
         catalog_source_manifest = tempfile.NamedTemporaryFile(
             mode="w+", prefix="catalog_source_manifest", delete=False
         )

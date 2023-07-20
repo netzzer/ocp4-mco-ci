@@ -6,6 +6,7 @@ from src.ocs import ocp
 from src.framework import config
 from src.utility import (constants, templating, version, defaults)
 from src.utility.cmd import exec_cmd
+
 from src.ocs.resources.package_manifest import PackageManifest
 from src.ocs.resources.package_manifest import get_selector_for_ocs_operator
 from src.ocs.resources.stroage_cluster import StorageCluster

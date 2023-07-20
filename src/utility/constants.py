@@ -78,6 +78,7 @@ AWS_IAM_POLICY_NAME = 'mirroring_pool'
 
 # other
 WORKER_MACHINE = "worker"
+MASTER_MACHINE = "master"
 
 # labels
 WORKER_LABEL = "node-role.kubernetes.io/worker"
@@ -87,3 +88,6 @@ OPERATOR_NODE_LABEL = "cluster.ocs.openshift.io/openshift-storage=''"
 
 # storage cluster
 STORAGE_CLUSTER_NAME = "ocs-storagecluster"
+
+# Resources / Kinds
+MACHINECONFIGPOOL = "MachineConfigPool"
