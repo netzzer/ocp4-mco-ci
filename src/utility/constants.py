@@ -31,10 +31,31 @@ OPERATOR_INTERNAL_SELECTOR = "ocs-operator-internal=true"
 OPERATOR_SOURCE_NAME = "ocs-operatorsource"
 SUBSCRIPTION = "subscriptions.v1alpha1.operators.coreos.com"
 OPENSHIFT_STORAGE_NAMESPACE = "openshift-storage"
-MCO_OPERATOR_NAMESPACE = "openshift-operators"
+OPENSHIFT_OPERATORS = "openshift-operators"
 ACM_OPERATOR_NAMESPACE = "open-cluster-management"
 OCS_PLUGIN_NAME = "odf-console"
 MCO_PLUGIN_NAME = "odf-multicluster-console"
+ODF_ICSP_YAML = os.path.join(
+    TEMPLATE_DIR, "imagecontentsourcepolicy.yaml"
+)
+# GitOps
+GITOPS_NAMESPACE = "openshift-gitops"
+GITOPS_OPERATOR_NAME = "openshift-gitops-operator"
+GITOPS_CLUSTER_NAME = "gitops-cluster"
+GITOPS_CLUSTER = "GitOpsCluster"
+GITOPS_CLUSTER_NAMESPACE = "openshift-gitops"
+GITOPS_CLUSTER_YAML = os.path.join(
+    TEMPLATE_DIR, "gitops-deployment", "gitops_cluster.yaml"
+)
+GITOPS_PLACEMENT_YAML = os.path.join(
+    TEMPLATE_DIR, "gitops-deployment", "gitops_placement.yaml"
+)
+GITOPS_MANAGEDCLUSTER_SETBINDING_YAML = os.path.join(
+    TEMPLATE_DIR, "gitops-deployment", "managedcluster_setbinding.yaml"
+)
+GITOPS_SUBSCRIPTION_YAML = os.path.join(
+    TEMPLATE_DIR, "gitops-deployment", "subscription.yaml"
+)
 
 # ACM Hub Parameters
 ACM_HUB_OPERATORGROUP_YAML = os.path.join(
@@ -55,6 +76,9 @@ ACM_HUB_UNRELEASED_PULL_SECRET_TEMPLATE = "pull-secret.yaml.j2"
 ACM_HUB_UNRELEASED_ICSP_YAML = os.path.join(
     TEMPLATE_DIR, "acm-deployment", "imagecontentsourcepolicy.yaml"
 )
+ACM_MANAGEDCLUSTER = "managedclusters.cluster.open-cluster-management.io"
+ACM_LOCAL_CLUSTER = "local-cluster"
+ACM_CLUSTERSET_LABEL = "cluster.open-cluster-management.io/clusterset"
 
 # Statuses
 STATUS_RUNNING = "Running"
@@ -91,3 +115,6 @@ STORAGE_CLUSTER_NAME = "ocs-storagecluster"
 
 # Resources / Kinds
 MACHINECONFIGPOOL = "MachineConfigPool"
+
+# Provisioners
+SUBSCRIPTION_WITH_ACM = "Subscription.operators.coreos.com"

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class MCODeployment(OperatorDeployment):
     def __init__(self):
-        super().__init__(config.ENV_DATA.get("mco_install_namespace") or constants.MCO_OPERATOR_NAMESPACE)
+        super().__init__(config.ENV_DATA.get("mco_install_namespace") or constants.OPENSHIFT_OPERATORS)
 
     def deploy_prereq(self):
         # create MCO catalog source
@@ -26,7 +26,6 @@ class MCODeployment(OperatorDeployment):
 
     def mco_subscription(self):
         logger.info("Creating namespace and operator group.")
-        # exec_cmd(f"oc apply -f {constants.MCO_OLM_YAML}")
         operator_selector = get_selector_for_ocs_operator()
         mco_operator_name = defaults.MCO_OPERATOR_NAME
         subscription_file = constants.SUBSCRIPTION_MCO_YAML

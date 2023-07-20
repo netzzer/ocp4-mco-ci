@@ -1,11 +1,13 @@
 import logging
 import sys
+import time
 import multiprocessing as mp
 
 from src.deployment.ocp import OCPDeployment
 from src.deployment.ocs import OCSDeployment
 from src.deployment.mco import MCODeployment
 from src.deployment.acm import ACMDeployment
+from src.deployment.gitops import GitopsDeployment
 from src.deployment.ssl_certificate import SSLCertificate
 from src.deployment.submariner import Submariner
 from src.deployment.import_managed_cluster import ImportManagedCluster
@@ -155,10 +157,29 @@ class Deployment(object):
                             log.info(f"Importing cluster {cluster.ENV_DATA['cluster_name']} into ACM")
                             import_managed_cluster = ImportManagedCluster(cluster.ENV_DATA['cluster_name'], cluster.ENV_DATA['cluster_path'])
                             import_managed_cluster.import_cluster()
+                        log.info("Sleeping for 90 seconds after importing managed cluster")
+                        time.sleep(90)
                     else:
                         log.warning(f"Skipping managed cluster import")
         except Exception as ex:
             log.error("Unable to import cluster", ex)
+        framework.config.switch_default_cluster_ctx()
+
+    def deploy_gitops(self):
+        # MCO Deployment
+        for i in range(framework.config.nclusters):
+            try:
+                framework.config.switch_ctx(i)
+                if framework.config.multicluster and framework.config.get_acm_index() == i:
+                    if not framework.config.MULTICLUSTER["skip_gitops_deployment"]:
+                        log.info("Deploying GitOps Operator")
+                        gitops_deployment = GitopsDeployment()
+                        gitops_deployment.deploy_prereq()
+                        GitopsDeployment.deploy_gitops()
+                    else:
+                        log.warning("GitOps deployment will be skipped")
+            except Exception as ex:
+                log.error("Unable to deploy GitOps operator", ex)
         framework.config.switch_default_cluster_ctx()
 
     def ssl_certificate(self):

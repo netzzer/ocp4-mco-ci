@@ -199,6 +199,8 @@ def main(argv=None):
     deployment.configure_submariner()
     # import managed cluster
     deployment.aws_import_cluster()
+    # Deploy GitOps
+    deployment.deploy_gitops()
     # SSL certificate exchange
     deployment.ssl_certificate()
     # Send email report

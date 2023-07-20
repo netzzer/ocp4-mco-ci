@@ -109,6 +109,10 @@ MULTICLUSTER:
   # For more info: https://docs.google.com/document/d/1MfSmXbiGI76As3_nNElsdmibpSIduxi8jquwO1HGuYY/edit#heading=h.bh2etop7o3f
   exchange_ssl_certificate: false
 
+  # GitOps
+  # To control GitOps installation
+  skip_gitops_deployment: true
+
 # Section for reporting configuration
 REPORTING:
   email:

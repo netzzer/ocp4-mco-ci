@@ -51,3 +51,6 @@ class UnavailableResourceException(Exception):
 
 class NotSupportedFunctionError(Exception):
     pass
+
+class UnexpectedDeploymentConfiguration(Exception):
+    pass
