@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class GitopsDeployment(OperatorDeployment):
     def __init__(self):
-        super().__init__(config.ENV_DATA.get("mco_install_namespace") or constants.GITOPS_OPERATOR_NAMESPACE)
+        super().__init__(config.ENV_DATA.get("gitops_install_namespace") or constants.OPENSHIFT_OPERATORS)
 
     def deploy_prereq(self):
         # deploy GitOps operator
@@ -42,7 +42,7 @@ class GitopsDeployment(OperatorDeployment):
         )
         exec_cmd(f"oc create -f {gitops_subscription_manifest.name}")
         self.wait_for_subscription(
-            constants.GITOPS_OPERATOR_NAME, namespace=constants.OPENSHIFT_OPERATORS
+            constants.GITOPS_OPERATOR_NAME
         )
         logger.info("Sleeping for 90 seconds after subscribing to GitOps Operator")
         time.sleep(90)
