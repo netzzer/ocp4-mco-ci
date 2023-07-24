@@ -44,7 +44,7 @@ class GitopsDeployment(OperatorDeployment):
         templating.dump_data_to_temp_yaml(
             gitops_subscription_yaml_data, gitops_subscription_manifest.name
         )
-        exec_cmd(f"oc create -f {gitops_subscription_manifest.name}")
+        exec_cmd(f"oc apply -f {gitops_subscription_manifest.name}")
         self.wait_for_subscription(constants.GITOPS_OPERATOR_NAME)
         logger.info("Sleeping for 90 seconds after subscribing to GitOps Operator")
         time.sleep(90)
