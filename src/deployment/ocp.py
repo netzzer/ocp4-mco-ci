@@ -3,6 +3,7 @@ import logging
 import json
 import yaml
 
+from src.utility.retry import retry
 from src.framework import config
 from src.utility import utils
 from src.utility import constants
@@ -81,7 +82,7 @@ class OCPDeployment():
         install_config_str = _templating.render_template(
             ocp_install_template_path, config.ENV_DATA
         )
-        # Log the install config *before* adding the pull secret,
+        # Log the install-config *before* adding the pull secret,
         # so we don't leak sensitive data.
         logger.info(f"Install config: \n{install_config_str}")
         # Parse the rendered YAML so that we can manipulate the object directly
@@ -100,6 +101,7 @@ class OCPDeployment():
             f.write(install_config_str)
 
     @staticmethod
+    @retry(CommandFailed, tries=6, delay=600, backoff=1)
     def deploy_ocp(installer_binary_path, cluster_path, log_cli_level="INFO"):
         # Do not access framework.config directly inside deploy_ocp, it is not thread safe
         try:

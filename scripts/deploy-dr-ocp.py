@@ -17,7 +17,7 @@ def job(t):
     except Exception:
         pass
 
-for i in ["10:00"]:
+for i in ["09:15"]:
     schedule.every().monday.at(i).do(job, i)
     schedule.every().tuesday.at(i).do(job, i)
     schedule.every().wednesday.at(i).do(job, i)

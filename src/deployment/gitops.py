@@ -61,10 +61,10 @@ class GitopsDeployment(OperatorDeployment):
     @staticmethod
     def deploy_gitops(log_cli_level="INFO"):
         logger.info("Creating GitOps CLuster Resource")
-        exec_cmd(f"oc create -f {constants.GITOPS_CLUSTER_YAML}")
+        exec_cmd(f"oc apply -f {constants.GITOPS_CLUSTER_YAML}")
 
         logger.info("Creating GitOps CLuster Placement Resource")
-        exec_cmd(f"oc create -f {constants.GITOPS_PLACEMENT_YAML}")
+        exec_cmd(f"oc apply -f {constants.GITOPS_PLACEMENT_YAML}")
 
         logger.info("Creating ManagedClusterSetBinding")
 
@@ -74,7 +74,7 @@ class GitopsDeployment(OperatorDeployment):
         )
         # ignore local-cluster here
         for i in managed_clusters:
-            if i["metadata"]["name"] != constants.ACM_LOCAL_CLUSTER:
+            if i["metadata"]["name"] != constants.ACM_LOCAL_CLUSTER or config.MULTICLUSTER["primary_cluster"]:
                 cluster_set.append(
                     i["metadata"]["labels"][constants.ACM_CLUSTERSET_LABEL]
                 )
