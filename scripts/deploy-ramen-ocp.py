@@ -13,7 +13,7 @@ def job(t):
         print("executing")
         suffix = get_suffix()
         os.system(
-            f"deploy-ocp multicluster 2  --email-ids gshanmug@redhat.com,srangana@redhat.com,bmekhiss@redhat.com,vkolli@redhat.com,rtalur@redhat.com,aclewett@redhat.com --cluster1 --cluster-name drcluster1-rdr-{suffix} --cluster-path /tmp/drcluster1-rdr-{suffix} --ocp4mcoci-conf samples/2_cluster_acm_setup/override_config.yaml --cluster2 --cluster-name drcluster2-rdr-{suffix} --cluster-path /tmp/drcluster2-rdr-{suffix}  --ocp4mcoci-conf samples/2_cluster_acm_setup/override_hub_config.yaml")
+            f"deploy-ocp multicluster 2  --email-ids gshanmug@redhat.com,srangana@redhat.com,bmekhiss@redhat.com,vkolli@redhat.com,rtalur@redhat.com,aclewett@redhat.com,rakeshgm@redhat.com --cluster1 --cluster-name drcluster1-rdr-{suffix} --cluster-path /tmp/drcluster1-rdr-{suffix} --ocp4mcoci-conf samples/2_cluster_acm_setup/override_config.yaml --cluster2 --cluster-name drcluster2-rdr-{suffix} --cluster-path /tmp/drcluster2-rdr-{suffix}  --ocp4mcoci-conf samples/2_cluster_acm_setup/override_hub_config.yaml")
     except Exception:
         pass
 
