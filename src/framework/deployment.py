@@ -72,7 +72,7 @@ class Deployment(object):
                 else:
                     log.warning("OCP deployment will be skipped")
             except Exception as ex:
-                log.error("Unable to deploy OCP cluster !")
+                log.error("Unable to deploy OCP cluster !", exc_info=True)
         framework.config.switch_default_cluster_ctx()
         if len(processes) > 0:
             [proc.start() for proc in processes]
@@ -109,7 +109,7 @@ class Deployment(object):
                 else:
                     log.warning("OCS deployment will be skipped")
             except Exception as ex:
-                log.error("Unable to deploy OCS cluster")
+                log.error("Unable to deploy OCS cluster", exc_info=True)
         framework.config.switch_default_cluster_ctx()
         if len(processes) > 0:
             log.info(f"Creating OCS cluster on {len(processes)} clusters")
@@ -135,7 +135,7 @@ class Deployment(object):
                     else:
                         log.warning("MCO deployment will be skipped")
             except Exception as ex:
-                log.error("Unable to deploy MCO operator")
+                log.error("Unable to deploy MCO operator", exc_info=True)
         framework.config.switch_default_cluster_ctx()
 
     def deploy_acm(self):
@@ -157,7 +157,7 @@ class Deployment(object):
                     else:
                         log.warning("ACM deployment will be skipped")
             except Exception as ex:
-                log.error("Unable to deploy ACM hub operator")
+                log.error("Unable to deploy ACM hub operator", exc_info=True)
         framework.config.switch_default_cluster_ctx()
 
     def configure_submariner(self):
@@ -175,7 +175,7 @@ class Deployment(object):
                     else:
                         log.warning("Submariner configuration will be skipped")
         except Exception as ex:
-            log.error("Unable to configure submariner")
+            log.error("Unable to configure submariner", exc_info=True)
         framework.config.switch_default_cluster_ctx()
 
     def aws_import_cluster(self):
@@ -203,7 +203,7 @@ class Deployment(object):
                     else:
                         log.warning(f"Skipping managed cluster import")
         except Exception as ex:
-            log.error("Unable to import cluster")
+            log.error("Unable to import cluster", exc_info=True)
         framework.config.switch_default_cluster_ctx()
 
     def deploy_gitops(self):
@@ -223,7 +223,7 @@ class Deployment(object):
                     else:
                         log.warning("GitOps deployment will be skipped")
             except Exception as ex:
-                log.error("Unable to deploy GitOps operator")
+                log.error("Unable to deploy GitOps operator", exc_info=True)
         framework.config.switch_default_cluster_ctx()
 
     def ssl_certificate(self):
@@ -256,7 +256,9 @@ class Deployment(object):
                             f"Skipping SSL certificate exchange for managed clusters"
                         )
         except Exception as ex:
-            log.error("Unable to configure SSL certificate for the cluster")
+            log.error(
+                "Unable to configure SSL certificate for the cluster", exc_info=True
+            )
         framework.config.switch_default_cluster_ctx()
 
     def send_email(self):
