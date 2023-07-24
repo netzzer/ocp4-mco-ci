@@ -7,26 +7,23 @@ from src.utility.retry import retry
 from src.framework import config
 from src.utility import utils
 from src.utility import constants
-from src.utility.exceptions import (
-    PullSecretNotFoundException,
-    CommandFailed
-)
+from src.utility.exceptions import PullSecretNotFoundException, CommandFailed
 from src.utility import templating
 
 logger = logging.getLogger(__name__)
 
-class OCPDeployment():
+
+class OCPDeployment:
     def __init__(self, cluster_name, cluster_path):
         self.cluster_name = cluster_name
         self.cluster_path = cluster_path
-        self.installer_binary_path = ''
+        self.installer_binary_path = ""
 
     def deploy_prereq(self):
         # download openshift installer
         self.installer_binary_path = self.download_installer()
         # create config
         self.create_config()
-
 
     def download_installer(self):
         return utils.download_installer(
@@ -69,15 +66,13 @@ class OCPDeployment():
 
     def create_config(self):
         """
-            Create the OCP deploy config
+        Create the OCP deploy config
         """
         deployment_platform = config.ENV_DATA["platform"]
         # Generate install-config from template
         logger.info("Generating install-config")
         _templating = templating.Templating()
-        ocp_install_template = (
-            f"install-config-{deployment_platform.lower()}.yaml.j2"
-        )
+        ocp_install_template = f"install-config-{deployment_platform.lower()}.yaml.j2"
         ocp_install_template_path = os.path.join(ocp_install_template)
         install_config_str = _templating.render_template(
             ocp_install_template_path, config.ENV_DATA
@@ -109,7 +104,7 @@ class OCPDeployment():
                 cmd="{bin_dir} create cluster --dir {cluster_dir} --log-level={log_level}".format(
                     bin_dir=installer_binary_path,
                     cluster_dir=cluster_path,
-                    log_level=log_cli_level
+                    log_level=log_cli_level,
                 ),
                 timeout=3600,
             )

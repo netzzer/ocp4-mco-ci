@@ -3,9 +3,10 @@ from src.framework import config
 from src.utility.exceptions import CommandFailed
 from src.ocs.ocp import OCP
 from src.ocs.ocs import OCS
-from src.utility.constants import (WORKER_MACHINE, OPERATOR_NODE_LABEL)
+from src.utility.constants import WORKER_MACHINE, OPERATOR_NODE_LABEL
 
 logger = logging.getLogger(__name__)
+
 
 def get_nodes(node_type=WORKER_MACHINE, num_of_nodes=None):
     """
@@ -20,12 +21,12 @@ def get_nodes(node_type=WORKER_MACHINE, num_of_nodes=None):
     typed_nodes = [
         node
         for node in get_node_objs()
-        if node_type
-        in node.ocp.get_resource(resource_name=node.name, column="ROLES")
+        if node_type in node.ocp.get_resource(resource_name=node.name, column="ROLES")
     ]
     if num_of_nodes:
         typed_nodes = typed_nodes[:num_of_nodes]
     return typed_nodes
+
 
 def get_node_status(node_obj):
     """
@@ -60,6 +61,7 @@ def get_node_objs(node_names=None):
     assert nodes, "Failed to get the nodes OCS objects"
     return nodes
 
+
 def get_nodes_in_statuses(statuses, node_objs=None):
     """
     Get all nodes in specific statuses
@@ -86,6 +88,7 @@ def get_nodes_in_statuses(statuses, node_objs=None):
 
     return nodes_in_statuses
 
+
 def get_typed_worker_nodes(os_id="rhcos"):
     """
     Get worker nodes with specific OS
@@ -101,6 +104,7 @@ def get_typed_worker_nodes(os_id="rhcos"):
         if node.get().get("metadata").get("labels").get("node.openshift.io/os_id")
         == os_id
     ]
+
 
 def label_nodes(nodes, label=OPERATOR_NODE_LABEL):
     """

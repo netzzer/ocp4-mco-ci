@@ -5,6 +5,7 @@ from src.utility.exceptions import TimeoutExpiredError
 
 log = logging.getLogger(__name__)
 
+
 class TimeoutSampler(object):
     """
     Samples the function output.

@@ -113,6 +113,7 @@ def init_multicluster_ocp4mcoci_conf(args, nclusters):
     # Set context to default_cluster_context_index
     framework.config.switch_default_cluster_ctx()
 
+
 def tokenize_per_cluster_args(args, nclusters):
     """
     Seperate per cluster arguments so that parsing becomes easy
@@ -146,6 +147,7 @@ def tokenize_per_cluster_args(args, nclusters):
         per_cluster_argv = []
     return multi_cluster_argv, common_argv
 
+
 def process_ocp4mcoci_conf(arguments):
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--ocp4mcoci-conf", action="append", default=[])
@@ -153,34 +155,51 @@ def process_ocp4mcoci_conf(arguments):
     load_config(args.ocp4mcoci_conf)
     bin_dir = framework.config.RUN.get("bin_dir")
     if bin_dir:
-        framework.config.update({"RUN" : {"bin_dir": os.path.abspath(
-            os.path.expanduser(framework.config.RUN["bin_dir"])
-        )}})
+        framework.config.update(
+            {
+                "RUN": {
+                    "bin_dir": os.path.abspath(
+                        os.path.expanduser(framework.config.RUN["bin_dir"])
+                    )
+                }
+            }
+        )
         utils.add_path_to_env_path(framework.config.RUN["bin_dir"])
+
 
 def process_cluster_path_conf(arguments):
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--cluster-path", default=framework.config.ENV_DATA["cluster_path"])
+    parser.add_argument(
+        "--cluster-path", default=framework.config.ENV_DATA["cluster_path"]
+    )
     args, _ = parser.parse_known_args(args=arguments)
     framework.config.update({"ENV_DATA": {"cluster_path": args.cluster_path}})
 
+
 def process_cluster_name_conf(arguments):
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--cluster-name", default=framework.config.ENV_DATA["cluster_name"])
+    parser.add_argument(
+        "--cluster-name", default=framework.config.ENV_DATA["cluster_name"]
+    )
     args, _ = parser.parse_known_args(args=arguments)
     framework.config.update({"ENV_DATA": {"cluster_name": args.cluster_name}})
 
+
 def process_log_level_arg(arguments):
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--log-cli-level", default='INFO', help='OCP installer log level')
+    parser.add_argument(
+        "--log-cli-level", default="INFO", help="OCP installer log level"
+    )
     args, _ = parser.parse_known_args(args=arguments)
     return args.log_cli_level
 
+
 def process_email_recipients(arguments):
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--email-ids", default='INFO', help='recipient email ids')
+    parser.add_argument("--email-ids", default="INFO", help="recipient email ids")
     args, _ = parser.parse_known_args(args=arguments)
     framework.config.update({"REPORTING": {"email": {"recipients": args.email_ids}}})
+
 
 def main(argv=None):
     arguments = argv or sys.argv[1:]
@@ -205,4 +224,3 @@ def main(argv=None):
     deployment.ssl_certificate()
     # Send email report
     deployment.send_email()
-

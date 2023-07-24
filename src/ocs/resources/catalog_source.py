@@ -7,15 +7,13 @@ from time import sleep
 from src.utility.cmd import exec_cmd
 from src.utility import constants
 from src.ocs.ocp import OCP
-from src.utility.exceptions import (
-    ResourceWrongStatusException,
-    CommandFailed
-)
+from src.utility.exceptions import ResourceWrongStatusException, CommandFailed
 from src.utility.retry import retry
 from src.utility.timeout import TimeoutSampler
 from src.utility.openshift_ops import OpenshiftOps
 
 logger = logging.getLogger(__name__)
+
 
 class CatalogSource(OCP):
     """
@@ -23,7 +21,9 @@ class CatalogSource(OCP):
     methods we need to do with it.
     """
 
-    def __init__(self, resource_name="", namespace=None, cluster_kubeconfig="", *args, **kwargs):
+    def __init__(
+        self, resource_name="", namespace=None, cluster_kubeconfig="", *args, **kwargs
+    ):
         """
         Initializer function for CatalogSource class
         Args:
@@ -104,4 +104,3 @@ def disable_specific_source(source_name, cluster_kubeconfig=""):
     )
     logger.info(f"Waiting 20 seconds after disabling source: {source_name}")
     sleep(20)
-

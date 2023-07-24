@@ -7,8 +7,8 @@ from subprocess import PIPE, Popen
 
 from src.framework import config
 from src.ocs.resources.package_manifest import PackageManifest
-from src.utility import (constants, templating)
-from src.utility.utils import (load_auth_config, clone_repo)
+from src.utility import constants, templating
+from src.utility.utils import load_auth_config, clone_repo
 from src.utility.cmd import exec_cmd
 from src.utility.exceptions import CommandFailed
 from src.ocs.resources.csv import CSV
@@ -17,9 +17,12 @@ from src.deployment.operator_deployment import OperatorDeployment
 
 
 logger = logging.getLogger(__name__)
+
+
 class ACMDeployment(OperatorDeployment):
     def __init__(self):
         super().__init__(constants.ACM_OPERATOR_NAMESPACE)
+
     @staticmethod
     def validate_acm_hub_install():
         """
@@ -38,6 +41,7 @@ class ACMDeployment(OperatorDeployment):
             sleep=5,
         )
         logger.info("MultiClusterHub Deployment Succeeded")
+
     def deploy_acm_hub_unreleased(self):
         """
         Handle ACM HUB unreleased image deployment
@@ -53,7 +57,9 @@ class ACMDeployment(OperatorDeployment):
         pw = base64.b64decode(docker_config)
         pw = pw.decode().replace("quay.io", "quay.io:443").encode()
         quay_token = base64.b64encode(pw).decode()
-        kubeconfig_location = os.path.join(config.ENV_DATA["cluster_path"], "auth", "kubeconfig")
+        kubeconfig_location = os.path.join(
+            config.ENV_DATA["cluster_path"], "auth", "kubeconfig"
+        )
 
         logger.info("Setting env vars")
         env_vars = {
@@ -88,7 +94,8 @@ class ACMDeployment(OperatorDeployment):
 
         logger.info("Writing tag data to snapshot.ver")
         image_tag = config.MULTICLUSTER.get(
-            "acm_unreleased_image", config.MULTICLUSTER.get("default_acm_unreleased_image")
+            "acm_unreleased_image",
+            config.MULTICLUSTER.get("default_acm_unreleased_image"),
         )
         with open(os.path.join(acm_hub_deploy_dir, "snapshot.ver"), "w") as f:
             f.write(image_tag)

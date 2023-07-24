@@ -1,5 +1,6 @@
 from src.ocs.ocp import OCP
 
+
 class StorageCluster(OCP):
     """
     This class represent StorageCluster and contains all related

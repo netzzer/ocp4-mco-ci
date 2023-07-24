@@ -5,7 +5,7 @@ import time
 from src.ocs import ocp
 from src.ocs.resources.csv import CSV
 from src.framework import config
-from src.utility import (constants, templating, defaults)
+from src.utility import constants, templating, defaults
 from src.utility.cmd import exec_cmd
 from src.ocs.resources.package_manifest import PackageManifest
 from src.deployment.operator_deployment import OperatorDeployment
@@ -13,9 +13,13 @@ from src.utility.exceptions import UnexpectedDeploymentConfiguration
 
 logger = logging.getLogger(__name__)
 
+
 class GitopsDeployment(OperatorDeployment):
     def __init__(self):
-        super().__init__(config.ENV_DATA.get("gitops_install_namespace") or constants.OPENSHIFT_OPERATORS)
+        super().__init__(
+            config.ENV_DATA.get("gitops_install_namespace")
+            or constants.OPENSHIFT_OPERATORS
+        )
 
     def deploy_prereq(self):
         # deploy GitOps operator
@@ -41,9 +45,7 @@ class GitopsDeployment(OperatorDeployment):
             gitops_subscription_yaml_data, gitops_subscription_manifest.name
         )
         exec_cmd(f"oc create -f {gitops_subscription_manifest.name}")
-        self.wait_for_subscription(
-            constants.GITOPS_OPERATOR_NAME
-        )
+        self.wait_for_subscription(constants.GITOPS_OPERATOR_NAME)
         logger.info("Sleeping for 90 seconds after subscribing to GitOps Operator")
         time.sleep(90)
         subscriptions = ocp.OCP(
@@ -52,9 +54,7 @@ class GitopsDeployment(OperatorDeployment):
             namespace=constants.OPENSHIFT_OPERATORS,
         ).get()
         gitops_csv_name = subscriptions["status"]["currentCSV"]
-        csv = CSV(
-            resource_name=gitops_csv_name, namespace=constants.GITOPS_NAMESPACE
-        )
+        csv = CSV(resource_name=gitops_csv_name, namespace=constants.GITOPS_NAMESPACE)
         csv.wait_for_phase("Succeeded", timeout=720)
         logger.info("GitOps Operator Deployment Succeeded")
 
@@ -74,7 +74,10 @@ class GitopsDeployment(OperatorDeployment):
         )
         # ignore local-cluster here
         for i in managed_clusters:
-            if i["metadata"]["name"] != constants.ACM_LOCAL_CLUSTER or config.MULTICLUSTER["primary_cluster"]:
+            if (
+                i["metadata"]["name"] != constants.ACM_LOCAL_CLUSTER
+                or config.MULTICLUSTER["primary_cluster"]
+            ):
                 cluster_set.append(
                     i["metadata"]["labels"][constants.ACM_CLUSTERSET_LABEL]
                 )

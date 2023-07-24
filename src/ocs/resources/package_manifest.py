@@ -6,13 +6,14 @@ from src.utility.exceptions import (
     CommandFailed,
     NoInstallPlanForApproveFoundException,
     CSVNotFound,
-    ChannelNotFound
+    ChannelNotFound,
 )
 from src.utility.retry import retry
 from src.utility.timeout import TimeoutSampler
-from src.ocs.resources.catalog_source import  CatalogSource
+from src.ocs.resources.catalog_source import CatalogSource
 
 logger = logging.getLogger(__name__)
+
 
 class PackageManifest(OCP):
     """
@@ -201,6 +202,7 @@ class PackageManifest(OCP):
                 logger.info(f"package manifest {resource_name} found!")
                 return
             logger.info(f"package manifest {resource_name} not found!")
+
 
 def get_selector_for_ocs_operator():
     """

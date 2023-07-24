@@ -9,6 +9,7 @@ from src.utility.utils import get_url_content
 
 logger = logging.getLogger(__name__)
 
+
 def to_nice_yaml(a, indent=2, *args, **kw):
     """
     This is a j2 filter which allows you from dictionary to print nice human
@@ -32,6 +33,7 @@ def to_nice_yaml(a, indent=2, *args, **kw):
     )
     return
 
+
 def load_yaml(file, multi_document=False):
     """
     Load yaml file (local or from URL) and convert it to dictionary
@@ -51,6 +53,7 @@ def load_yaml(file, multi_document=False):
         with open(file, "r") as fs:
             return loader(fs.read())
 
+
 def dump_data_to_temp_yaml(data, temp_yaml):
     """
     Dump data to temporary yaml file
@@ -67,6 +70,7 @@ def dump_data_to_temp_yaml(data, temp_yaml):
         yaml_file.write(yaml_data)
     logger.info(yaml_data)
     return yaml_data
+
 
 class Templating:
     """

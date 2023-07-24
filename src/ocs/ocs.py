@@ -8,6 +8,7 @@ from src.ocs.ocp import OCP
 
 log = logging.getLogger(__name__)
 
+
 class OCS(object):
     """
     Base OCSClass

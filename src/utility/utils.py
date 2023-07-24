@@ -25,7 +25,7 @@ from src.utility.constants import (
     EXTERNAL_DIR,
     WORKER_MACHINE,
     MASTER_MACHINE,
-    MACHINECONFIGPOOL
+    MACHINECONFIGPOOL,
 )
 from src.utility.exceptions import (
     UnsupportedOSType,
@@ -51,7 +51,11 @@ def download_installer(
     bin_dir = os.path.expanduser(bin_dir or config.RUN["bin_dir"])
     installer_filename = "openshift-install"
     installer_binary_path = os.path.join(bin_dir, installer_filename)
-    if os.path.isfile(installer_binary_path) and force_download and config.cur_index == 0:
+    if (
+        os.path.isfile(installer_binary_path)
+        and force_download
+        and config.cur_index == 0
+    ):
         delete_file(installer_binary_path)
     if os.path.isfile(installer_binary_path):
         logger.debug(f"Installer exists ({installer_binary_path}), skipping download.")
@@ -169,16 +173,16 @@ def get_openshift_client(
 
 def expose_ocp_version(version):
     """
-        This helper function exposes latest nightly version or GA version of OCP.
-        When the version string ends with .nightly (e.g. 4.2.0-0.nightly) it will
-        expose the version to latest accepted OCP build
-        (e.g. 4.2.0-0.nightly-2019-08-08-103722)
-        If the version ends with -ga than it will find the latest GA OCP version
-        and will expose 4.2-ga to for example 4.2.22.
-        Args:
-            version (str): Verison of OCP
-        Returns:
-            str: Version of OCP exposed to full version if latest nighly passed
+    This helper function exposes latest nightly version or GA version of OCP.
+    When the version string ends with .nightly (e.g. 4.2.0-0.nightly) it will
+    expose the version to latest accepted OCP build
+    (e.g. 4.2.0-0.nightly-2019-08-08-103722)
+    If the version ends with -ga than it will find the latest GA OCP version
+    and will expose 4.2-ga to for example 4.2.22.
+    Args:
+        version (str): Verison of OCP
+    Returns:
+        str: Version of OCP exposed to full version if latest nighly passed
     """
     if version.endswith(".nightly"):
         latest_nightly_url = (
@@ -207,12 +211,16 @@ def get_available_ocp_versions(channel):
     """
     headers = {"Accept": "application/json"}
     req = requests.get(
-        "https://api.openshift.com/api/upgrades_info/v1/graph?channel={channel}".format(channel=channel), headers=headers
+        "https://api.openshift.com/api/upgrades_info/v1/graph?channel={channel}".format(
+            channel=channel
+        ),
+        headers=headers,
     )
     data = req.json()
     versions = [Version(node["version"]) for node in data["nodes"]]
     versions.sort()
     return versions
+
 
 def get_latest_ocp_version(channel, index=-1):
     """
@@ -227,6 +235,7 @@ def get_latest_ocp_version(channel, index=-1):
     """
     versions = get_available_ocp_versions(channel)
     return str(versions[index])
+
 
 def get_url_content(url, **kwargs):
     """
@@ -244,6 +253,7 @@ def get_url_content(url, **kwargs):
     assert r.ok, f"Couldn't load URL: {url} content! Status: {r.status_code}."
     return r.content
 
+
 def delete_file(file_name):
     """
     Delete file_name
@@ -251,6 +261,7 @@ def delete_file(file_name):
         file_name (str): Path to the file you want to delete
     """
     os.remove(file_name)
+
 
 def prepare_bin_dir(bin_dir=None):
     """
@@ -264,6 +275,7 @@ def prepare_bin_dir(bin_dir=None):
         logger.info(f"Directory '{bin_dir}' successfully created.")
     except FileExistsError:
         logger.debug(f"Directory '{bin_dir}' already exists.")
+
 
 def get_openshift_mirror_url(file_name, version):
     """
@@ -283,16 +295,18 @@ def get_openshift_mirror_url(file_name, version):
         os_type = "linux"
     else:
         raise UnsupportedOSType
-    mirror_link = config.DEPLOYMENT.get("ocp_mirror_url", "").find("mirror.openshift.com") != -1
+    mirror_link = (
+        config.DEPLOYMENT.get("ocp_mirror_url", "").find("mirror.openshift.com") != -1
+    )
     if mirror_link:
         url_template = os.path.join(
             config.DEPLOYMENT.get("ocp_mirror_url", ""),
-            "{version}/{file_name}-{os_type}.tar.gz"
+            "{version}/{file_name}-{os_type}.tar.gz",
         )
     else:
         url_template = os.path.join(
             config.DEPLOYMENT.get("ocp_mirror_url", ""),
-            "{version}/{file_name}-{os_type}-{version}.tar.gz"
+            "{version}/{file_name}-{os_type}-{version}.tar.gz",
         )
     url = url_template.format(
         version=version,
@@ -301,6 +315,7 @@ def get_openshift_mirror_url(file_name, version):
     )
     logger.info(f"openshift installer url: {url}")
     return url
+
 
 @retry(ResourceWrongStatusException, tries=4, delay=5, backoff=1)
 def download_file(url, filename, **kwargs):
@@ -314,14 +329,17 @@ def download_file(url, filename, **kwargs):
     logger.debug(f"Download '{url}' to '{filename}'.")
     with open(filename, "wb") as f:
         r = requests.get(url, **kwargs)
-        if(not r.ok):
-            print(f"The URL {url} is not available! Status: {r.status_code}. retrying...")
+        if not r.ok:
+            print(
+                f"The URL {url} is not available! Status: {r.status_code}. retrying..."
+            )
             raise ResourceWrongStatusException(
                 f"The URL {url} is not available! Status: {r.status_code}."
             )
 
         assert r.ok, f"The URL {url} is not available! Status: {r.status_code}."
         f.write(r.content)
+
 
 def get_client_version(client_binary_path):
     """
@@ -349,6 +367,7 @@ def ocp4mcoci_log_path():
         os.path.join(config.RUN["log_dir"], f"ocp4mco-ci-logs-{config.RUN['run_id']}")
     )
 
+
 def add_path_to_env_path(path):
     """
     Add path to the PATH environment variable (if not already there).
@@ -361,6 +380,7 @@ def add_path_to_env_path(path):
         logger.info(f"Path '{path}' added to the PATH environment variable.")
     logger.debug(f"PATH: {os.environ['PATH']}")
 
+
 def create_directory_path(path):
     """
     Creates directory if path doesn't exists
@@ -371,15 +391,16 @@ def create_directory_path(path):
     else:
         logger.debug(f"{path} already exists")
 
+
 def is_cluster_running(cluster_path):
     from src.utility.openshift_ops import OpenshiftOps
 
-    return OpenshiftOps.set_kubeconfig(
-        get_kube_config_path(cluster_path)
-    )
+    return OpenshiftOps.set_kubeconfig(get_kube_config_path(cluster_path))
+
 
 def get_kube_config_path(cluster_path=""):
     return os.path.join(cluster_path, config.RUN.get("kubeconfig_location"))
+
 
 def get_email_pass():
     email_pass_path = os.path.join(TOP_DIR, "data", "email-pass")
@@ -391,6 +412,7 @@ def get_email_pass():
     with open(email_pass_path, "r") as f:
         # single string
         return f.read()
+
 
 def get_ocp_version(seperator=None):
     """
@@ -412,8 +434,8 @@ def get_ocp_version(seperator=None):
             raw_version = json.loads(exec_cmd("oc version -o json"))["openshiftVersion"]
         else:
             raw_version = config.DEPLOYMENT["installer_version"]
-        if raw_version.startswith('latest'):
-            version = raw_version.split('-')[1]
+        if raw_version.startswith("latest"):
+            version = raw_version.split("-")[1]
         else:
             version = Version.coerce(raw_version)
             version = char.join([str(version.major), str(version.minor)])
@@ -421,19 +443,17 @@ def get_ocp_version(seperator=None):
         logger.error("Unable to get version OCP version.")
     return version
 
+
 def email_reports():
-    mailids = config.REPORTING['email']['recipients']
+    mailids = config.REPORTING["email"]["recipients"]
     if mailids == "":
         logger.warning("No recipients found, Skipping email notification !")
         return
     recipients = []
     [recipients.append(mailid) for mailid in mailids.split(",")]
-    sender = 'ocpclusterbot@redhat.com'
+    sender = "ocpclusterbot@redhat.com"
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = (
-        f"ocp4mco-ci cluster deployment "
-        f"(RUN ID: {config.run_id}) "
-    )
+    msg["Subject"] = f"ocp4mco-ci cluster deployment " f"(RUN ID: {config.run_id}) "
     msg["From"] = sender
     msg["To"] = ",".join(recipients)
     html = os.path.join(EMAIL_NOTIFICATION_HTML)
@@ -443,16 +463,16 @@ def email_reports():
     parse_html_for_email(soup)
     part1 = MIMEText(soup, "html")
     msg.attach(part1)
-    kube_config_path = os.path.join(config.ENV_DATA["cluster_path"], config.RUN["kubeconfig_location"])
+    kube_config_path = os.path.join(
+        config.ENV_DATA["cluster_path"], config.RUN["kubeconfig_location"]
+    )
     is_kube_config_exists = os.path.exists(kube_config_path)
     if is_kube_config_exists:
         with open(kube_config_path) as fd:
-            part2 = MIMEBase('application', "octet-stream")
+            part2 = MIMEBase("application", "octet-stream")
             part2.set_payload(fd.read())
             encoders.encode_base64(part2)
-            part2.add_header(
-                'Content-Disposition', 'attachment; filename="kubeconfig"'
-            )
+            part2.add_header("Content-Disposition", 'attachment; filename="kubeconfig"')
             msg.attach(part2)
     try:
         s = smtplib.SMTP(config.REPORTING["email"]["smtp_server"])
@@ -462,6 +482,7 @@ def email_reports():
     except Exception:
         logger.exception("Sending email with results failed!")
 
+
 def parse_html_for_email(soup):
     # email notification html
     div = soup.find("div")
@@ -470,17 +491,19 @@ def parse_html_for_email(soup):
     soup.find("table").clear()
     username = config.RUN["username"]
     password = ""
-    rows = table.findAll('tr')
+    rows = table.findAll("tr")
     for row in rows:
-        column_header = row.find('th')
-        column = row.find('td')
+        column_header = row.find("th")
+        column = row.find("td")
         if column_header.string == "Cluster name":
             column.string = config.ENV_DATA["cluster_name"]
         if column_header.string == "Username":
             column.string = config.RUN["username"]
         if column_header.string == "Password":
             auth_file_path = config.RUN["password_location"]
-            auth_file_full_path = os.path.join(config.ENV_DATA["cluster_path"], auth_file_path)
+            auth_file_full_path = os.path.join(
+                config.ENV_DATA["cluster_path"], auth_file_path
+            )
             is_password_exist = os.path.exists(auth_file_full_path)
             if is_password_exist:
                 with open(os.path.expanduser(auth_file_full_path)) as fd:
@@ -489,12 +512,20 @@ def parse_html_for_email(soup):
             else:
                 column.string = ""
         if column_header.string == "Cluster role":
-            column.string = 'ACM Cluster' if config.MULTICLUSTER["acm_cluster"] else 'Non-ACM Cluster'
+            column.string = (
+                "ACM Cluster"
+                if config.MULTICLUSTER["acm_cluster"]
+                else "Non-ACM Cluster"
+            )
         if column_header.string == "Cluster status":
             p_tag = column.find("p")
-            status = 'Available' if is_cluster_running(config.ENV_DATA["cluster_path"])  else 'Not Available'
+            status = (
+                "Available"
+                if is_cluster_running(config.ENV_DATA["cluster_path"])
+                else "Not Available"
+            )
             p_tag.string = status
-            p_tag['style'] = "color: green;" if status == 'Available' else "color: red;"
+            p_tag["style"] = "color: green;" if status == "Available" else "color: red;"
         if column_header.string == "Cluster version":
             column.string = get_ocp_version()
         if column_header.string == "Cluster URL":
@@ -504,6 +535,8 @@ def parse_html_for_email(soup):
         if column_header.string == "Login command":
             column.string = f"oc login https://api.{config.ENV_DATA['cluster_name']}.{config.ENV_DATA['base_domain']}:6443 -u {username} -p {password}"
         div.insert(0, table)
+
+
 def load_auth_config():
     """
     Load the authentication config YAML from /data/auth.yaml
@@ -526,6 +559,7 @@ def load_auth_config():
             f"please refer to the getting started guide ({AUTH_CONFIG_DOCS})"
         )
         return {}
+
 
 def clone_repo(
     url,
@@ -603,6 +637,7 @@ def clone_repo(
     if to_checkout:
         exec_cmd(f"git checkout {to_checkout}", cwd=location)
 
+
 def get_non_acm_cluster_config(include_acm=False):
     """
     Get a list of non-acm cluster's config objects
@@ -612,16 +647,20 @@ def get_non_acm_cluster_config(include_acm=False):
     non_acm_list = []
     for i in range(len(config.clusters)):
         conf = config.clusters[i]
-        if i == config.get_acm_index() and (not conf.MULTICLUSTER["primary_cluster"] or not include_acm):
+        if i == config.get_acm_index() and (
+            not conf.MULTICLUSTER["primary_cluster"] or not include_acm
+        ):
             continue
         else:
             non_acm_list.append(config.clusters[i])
     return non_acm_list
 
+
 def get_kube_config(cluster_path):
     kube_config_path = get_kube_config_path(cluster_path)
-    with open(kube_config_path, 'r') as f:
+    with open(kube_config_path, "r") as f:
         return f.read()
+
 
 def wait_for_machineconfigpool_status(node_type, timeout=900, skip_tls_verify=False):
     """

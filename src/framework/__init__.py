@@ -190,7 +190,9 @@ class MultiClusterConfig:
             for attr in self.attr_list
         ]
         self.to_dict = self.cluster_ctx.to_dict
-        os.environ["KUBECONFIG"] = os.path.join(self.ENV_DATA['cluster_path'], self.RUN.get("kubeconfig_location"))
+        os.environ["KUBECONFIG"] = os.path.join(
+            self.ENV_DATA["cluster_path"], self.RUN.get("kubeconfig_location")
+        )
 
     def switch_ctx(self, index=0):
         self.cluster_ctx = self.clusters[index]
@@ -210,7 +212,9 @@ class MultiClusterConfig:
     def switch_default_cluster_ctx(self):
         # We can check any conf for default_cluster_context_index
         # because its a common arg
-        self.switch_ctx(self.cluster_ctx.ENV_DATA.get("default_cluster_context_index", 0))
+        self.switch_ctx(
+            self.cluster_ctx.ENV_DATA.get("default_cluster_context_index", 0)
+        )
 
     def get_cluster_index_by_name(self, cluster_name):
         """
@@ -243,5 +247,6 @@ class MultiClusterConfig:
             str: The cluster name which is stored as str in conf (None if key not exist)
         """
         return self.ENV_DATA.get("cluster_name")
+
 
 config = MultiClusterConfig()

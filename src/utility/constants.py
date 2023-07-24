@@ -1,7 +1,7 @@
 import os
 
 # Directories
-TOP_DIR = os.path.abspath('.')
+TOP_DIR = os.path.abspath(".")
 EXTERNAL_DIR = os.path.join(TOP_DIR, "external")
 TEMPLATE_DIR = os.path.join(TOP_DIR, "src", "templates")
 CATALOG_SOURCE_YAML = os.path.join(TEMPLATE_DIR, "catalog-source.yaml")
@@ -35,9 +35,7 @@ OPENSHIFT_OPERATORS = "openshift-operators"
 ACM_OPERATOR_NAMESPACE = "open-cluster-management"
 OCS_PLUGIN_NAME = "odf-console"
 MCO_PLUGIN_NAME = "odf-multicluster-console"
-ODF_ICSP_YAML = os.path.join(
-    TEMPLATE_DIR, "imagecontentsourcepolicy.yaml"
-)
+ODF_ICSP_YAML = os.path.join(TEMPLATE_DIR, "imagecontentsourcepolicy.yaml")
 # GitOps
 GITOPS_NAMESPACE = "openshift-gitops"
 GITOPS_OPERATOR_NAME = "openshift-gitops-operator"
@@ -98,7 +96,7 @@ OCS_CSV_PREFIX = "ocs-operator"
 # Submariner constants
 SUBMARINER_GATEWAY_NODE_LABEL = "submariner.io/gateway=true"
 SUBMARINER_DOWNLOAD_URL = "https://get.submariner.io"
-AWS_IAM_POLICY_NAME = 'mirroring_pool'
+AWS_IAM_POLICY_NAME = "mirroring_pool"
 
 # other
 WORKER_MACHINE = "worker"

@@ -4,7 +4,7 @@ import time
 
 from src.ocs import ocp
 from src.framework import config
-from src.utility import (constants, templating, version, defaults)
+from src.utility import constants, templating, version, defaults
 from src.utility.cmd import exec_cmd
 
 from src.ocs.resources.package_manifest import PackageManifest
@@ -16,6 +16,7 @@ from src.utility.exceptions import UnavailableResourceException
 
 logger = logging.getLogger(__name__)
 
+
 class OCSDeployment(OperatorDeployment):
     def __init__(self):
         super().__init__(constants.OPENSHIFT_STORAGE_NAMESPACE)
@@ -26,7 +27,9 @@ class OCSDeployment(OperatorDeployment):
         # deploy ocs operator
         self.ocs_subscription()
         # enable odf-console plugin
-        self.enable_console_plugin(constants.OCS_PLUGIN_NAME, config.ENV_DATA.get("enable_ocs_plugin"))
+        self.enable_console_plugin(
+            constants.OCS_PLUGIN_NAME, config.ENV_DATA.get("enable_ocs_plugin")
+        )
         # label nodes
         self.label_nodes()
 
@@ -108,7 +111,6 @@ class OCSDeployment(OperatorDeployment):
         _ocp = ocp.OCP(kind="node")
         workers_to_label = " ".join(distributed_worker_nodes[:to_label])
         if workers_to_label:
-
             logger.info(
                 f"Label nodes: {workers_to_label} with label: "
                 f"{constants.OPERATOR_NODE_LABEL}"
@@ -120,7 +122,7 @@ class OCSDeployment(OperatorDeployment):
                 )
             ]
             if config.DEPLOYMENT.get("infra_nodes") and not config.ENV_DATA.get(
-                    "infra_replicas"
+                "infra_replicas"
             ):
                 logger.info(
                     f"Label nodes: {workers_to_label} with label: "
@@ -146,15 +148,16 @@ class OCSDeployment(OperatorDeployment):
             namespace=constants.OPENSHIFT_STORAGE_NAMESPACE,
             cluster_kubeconfig=kubeconfig,
         )
-        logger.info(f"Check if StorageCluster: {storage_cluster_name} is in Succeeded phase")
+        logger.info(
+            f"Check if StorageCluster: {storage_cluster_name} is in Succeeded phase"
+        )
         storage_cluster.wait_for_phase(phase="Ready", timeout=600)
-
 
     @staticmethod
     def deploy_ocs(kubeconfig, skip_cluster_creation):
         # Do not access framework.config directly inside deploy_ocs, it is not thread safe
         if not skip_cluster_creation:
-            exec_cmd(f"oc apply -f {constants.STORAGE_CLUSTER_YAML} --kubeconfig {kubeconfig}")
+            exec_cmd(
+                f"oc apply -f {constants.STORAGE_CLUSTER_YAML} --kubeconfig {kubeconfig}"
+            )
             OCSDeployment.verify_storage_cluster(kubeconfig)
-
-

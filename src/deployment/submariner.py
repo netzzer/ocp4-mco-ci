@@ -10,94 +10,106 @@ from src.utility.retry import retry
 from botocore.exceptions import ClientError
 from src.framework import config
 from src.utility.cmd import exec_cmd
-from src.utility.nodes import (get_typed_worker_nodes)
-from src.utility.exceptions import (CommandFailed, DRPrimaryNotFoundException)
+from src.utility.nodes import get_typed_worker_nodes
+from src.utility.exceptions import CommandFailed, DRPrimaryNotFoundException
 from src.utility import constants
-from src.utility.utils import (get_non_acm_cluster_config, get_kube_config_path)
+from src.utility.utils import get_non_acm_cluster_config, get_kube_config_path
 
 logger = logging.getLogger(__name__)
-iam = boto3.client('iam')
+iam = boto3.client("iam")
+
 
 def get_api_username(cluster_name):
-    username_matcher = f'{cluster_name}-'
-    username = ''
+    username_matcher = f"{cluster_name}-"
+    username = ""
     try:
-        paginator = iam.get_paginator('list_users')
+        paginator = iam.get_paginator("list_users")
         for page in paginator.paginate():
-            for user in page['Users']:
-                if username_matcher in user['UserName'] and 'openshift-machine-api-aws' in user['UserName'] :
-                    username = user['UserName']
+            for user in page["Users"]:
+                if (
+                    username_matcher in user["UserName"]
+                    and "openshift-machine-api-aws" in user["UserName"]
+                ):
+                    username = user["UserName"]
                     break
         return username
     except ClientError as error:
-        logger.error(f'Unable to find aws api {username_matcher}')
+        logger.error(f"Unable to find aws api {username_matcher}")
         raise error
 
+
 def get_infra_id(cluster_path):
-    meta_data_json_path = f'{cluster_path}/metadata.json'
+    meta_data_json_path = f"{cluster_path}/metadata.json"
     try:
-        f = open(meta_data_json_path, 'r')
+        f = open(meta_data_json_path, "r")
         meta_data_json = json.load(f)
-        return meta_data_json['infraID']
+        return meta_data_json["infraID"]
     except IOError as error:
-        logger.error(f'Unable to find infra id {meta_data_json_path}')
+        logger.error(f"Unable to find infra id {meta_data_json_path}")
         raise error
+
 
 def get_aws_user_id():
     try:
-        sts = boto3.client('sts')
+        sts = boto3.client("sts")
         response = sts.get_caller_identity()
         return response["Account"]
     except ClientError as error:
-        logger.error('Unable to find aws user id')
+        logger.error("Unable to find aws user id")
         raise error
+
 
 def assign_aws_policy(cluster_name):
     try:
-        print('Assigning a policy to aws API user')
-        policy = "arn:aws:iam::" + get_aws_user_id() + ":policy/" + constants.AWS_IAM_POLICY_NAME
-        username = get_api_username(cluster_name)
-        iam.attach_user_policy(
-            UserName=username,
-            PolicyArn=policy
+        print("Assigning a policy to aws API user")
+        policy = (
+            "arn:aws:iam::"
+            + get_aws_user_id()
+            + ":policy/"
+            + constants.AWS_IAM_POLICY_NAME
         )
+        username = get_api_username(cluster_name)
+        iam.attach_user_policy(UserName=username, PolicyArn=policy)
     except ClientError as error:
-        logger.error('Unable to assign aws policy')
+        logger.error("Unable to assign aws policy")
         raise error
+
 
 def remove_aws_policy(cluster_name):
     try:
-        print('Removing a policy to aws API user')
-        policy = "arn:aws:iam::" + get_aws_user_id() + ":policy/" + constants.AWS_IAM_POLICY_NAME
+        print("Removing a policy to aws API user")
+        policy = (
+            "arn:aws:iam::"
+            + get_aws_user_id()
+            + ":policy/"
+            + constants.AWS_IAM_POLICY_NAME
+        )
         username = get_api_username(cluster_name)
-        if username != '':
-            iam.detach_user_policy(
-                UserName=username,
-                PolicyArn=policy
-            )
+        if username != "":
+            iam.detach_user_policy(UserName=username, PolicyArn=policy)
     except ClientError as error:
-        logger.error('Unable to remove aws policy')
+        logger.error("Unable to remove aws policy")
 
 
 def create_aws_policy():
-    policy = open(os.path.join(constants.AWS_IAM_POLICY_JSON), 'r')
+    policy = open(os.path.join(constants.AWS_IAM_POLICY_JSON), "r")
     try:
         iam.create_policy(
-            PolicyName=constants.AWS_IAM_POLICY_NAME,
-            PolicyDocument=policy.read()
+            PolicyName=constants.AWS_IAM_POLICY_NAME, PolicyDocument=policy.read()
         )
     except iam.exceptions.EntityAlreadyExistsException as ex:
-        logger.warning(f'AWS policy {constants.AWS_IAM_POLICY_NAME} already exists')
+        logger.warning(f"AWS policy {constants.AWS_IAM_POLICY_NAME} already exists")
+
 
 def create_aws_policy():
-    policy = open(os.path.join(constants.AWS_IAM_POLICY_JSON), 'r')
+    policy = open(os.path.join(constants.AWS_IAM_POLICY_JSON), "r")
     try:
         iam.create_policy(
-            PolicyName=constants.AWS_IAM_POLICY_NAME,
-            PolicyDocument=policy.read()
+            PolicyName=constants.AWS_IAM_POLICY_NAME, PolicyDocument=policy.read()
         )
     except iam.exceptions.EntityAlreadyExistsException as ex:
-        logger.warning(f'AWS policy {constants.AWS_IAM_POLICY_NAME} already exists')
+        logger.warning(f"AWS policy {constants.AWS_IAM_POLICY_NAME} already exists")
+
 
 def run_subctl_cmd(cmd=None):
     """
@@ -107,6 +119,8 @@ def run_subctl_cmd(cmd=None):
     """
     cmd = " ".join(["subctl", cmd])
     exec_cmd(cmd)
+
+
 class Submariner(object):
     """
     Submariner configuaration and deployment
@@ -140,8 +154,11 @@ class Submariner(object):
             # This script puts the platform specific binary in ~/.local/bin
             # we need to move the subctl binary to ocs-ci/bin dir
             try:
-                submarier_url = config.MULTICLUSTER["submariner_url"]  or constants.SUBMARINER_DOWNLOAD_URL
-                resp =  requests.get(submarier_url)
+                submarier_url = (
+                    config.MULTICLUSTER["submariner_url"]
+                    or constants.SUBMARINER_DOWNLOAD_URL
+                )
+                resp = requests.get(submarier_url)
             except requests.ConnectionError:
                 logger.exception(
                     "Failed to download the downloader script from submariner site"
@@ -171,7 +188,10 @@ class Submariner(object):
     def join_cluster(self, cluster):
         # Join all the clusters (except ACM cluster in case of hub deployment)
         cluster_index = cluster.MULTICLUSTER["multicluster_index"]
-        if cluster_index != config.get_acm_index() or config.MULTICLUSTER["primary_cluster"]:
+        if (
+            cluster_index != config.get_acm_index()
+            or config.MULTICLUSTER["primary_cluster"]
+        ):
             join_cmd = (
                 f"join --kubeconfig {get_kube_config_path(cluster.ENV_DATA['cluster_path'])} "
                 f"{config.MULTICLUSTER['submariner_info_file']} "
@@ -208,14 +228,16 @@ class Submariner(object):
 
     @retry(CommandFailed, tries=5, delay=30, backoff=1)
     def prepare_aws_cloud(self, cluster):
-        infra_id = get_infra_id(cluster.ENV_DATA['cluster_path'])
+        infra_id = get_infra_id(cluster.ENV_DATA["cluster_path"])
         prepare_cmd = f'cloud prepare aws --infra-id {infra_id}  --region {cluster.ENV_DATA["region"]}'
         run_subctl_cmd(prepare_cmd)
 
     @retry(CommandFailed, tries=5, delay=60, backoff=1)
     def verify_connections(self):
         for i in self.dr_only_list:
-            kube_config_path = get_kube_config_path(config.clusters[i].ENV_DATA["cluster_path"])
+            kube_config_path = get_kube_config_path(
+                config.clusters[i].ENV_DATA["cluster_path"]
+            )
             connect_check = f"show connections --kubeconfig {kube_config_path}"
             try:
                 run_subctl_cmd(connect_check)
@@ -237,7 +259,7 @@ class Submariner(object):
         restore_index = config.cur_index
         for cluster in get_non_acm_cluster_config(True):
             config.switch_ctx(cluster.MULTICLUSTER["multicluster_index"])
-            assign_aws_policy(cluster.ENV_DATA['cluster_name'])
+            assign_aws_policy(cluster.ENV_DATA["cluster_name"])
             try:
                 self.prepare_aws_cloud(cluster)
                 self.join_cluster(cluster)

@@ -8,12 +8,12 @@ import re
 from src.utility.retry import retry
 from src.utility.timeout import TimeoutSampler
 from src.framework import config
-from src.utility.exceptions  import (
+from src.utility.exceptions import (
     ResourceNameNotSpecifiedException,
     ResourceWrongStatusException,
     CommandFailed,
     TimeoutExpiredError,
-    NotSupportedFunctionError
+    NotSupportedFunctionError,
 )
 from src.utility.cmd import exec_cmd
 
@@ -24,20 +24,21 @@ class OCP(object):
     """
     A basic OCP object to run basic 'oc' commands
     """
+
     _has_phase = False
 
     def __init__(
-            self,
-            api_version="v1",
-            kind="Service",
-            namespace=None,
-            resource_name="",
-            selector=None,
-            field_selector=None,
-            cluster_kubeconfig="",
-            threading_lock=None,
-            silent=False,
-            skip_tls_verify = False,
+        self,
+        api_version="v1",
+        kind="Service",
+        namespace=None,
+        resource_name="",
+        selector=None,
+        field_selector=None,
+        cluster_kubeconfig="",
+        threading_lock=None,
+        silent=False,
+        skip_tls_verify=False,
     ):
         """
         Initializer function
@@ -94,7 +95,6 @@ class OCP(object):
         self._data = self.get(silent=silent)
         return self._data
 
-
     def check_name_is_specified(self, resource_name=""):
         """
         Check if the name of the resource is specified in class level and
@@ -110,17 +110,17 @@ class OCP(object):
             )
 
     def get(
-            self,
-            resource_name="",
-            out_yaml_format=True,
-            selector=None,
-            all_namespaces=False,
-            retry=0,
-            wait=3,
-            dont_raise=False,
-            silent=False,
-            field_selector=None,
-            skip_tls_verify=False,
+        self,
+        resource_name="",
+        out_yaml_format=True,
+        selector=None,
+        all_namespaces=False,
+        retry=0,
+        wait=3,
+        dont_raise=False,
+        silent=False,
+        field_selector=None,
+        skip_tls_verify=False,
     ):
         """
         Get command - 'oc get <resource>'
@@ -160,7 +160,11 @@ class OCP(object):
         retry += 1
         while retry:
             try:
-                return self.exec_oc_cmd(command, silent=silent, skip_tls_verify=skip_tls_verify,)
+                return self.exec_oc_cmd(
+                    command,
+                    silent=silent,
+                    skip_tls_verify=skip_tls_verify,
+                )
             except CommandFailed as ex:
                 if not silent:
                     log.warning(
@@ -253,16 +257,15 @@ class OCP(object):
                 "Resource name doesn't support this functionality!"
             )
 
-
     def exec_oc_cmd(
-            self,
-            command,
-            out_yaml_format=True,
-            timeout=600,
-            ignore_error=False,
-            silent=False,
-            skip_tls_verify=False,
-            **kwargs,
+        self,
+        command,
+        out_yaml_format=True,
+        timeout=600,
+        ignore_error=False,
+        silent=False,
+        skip_tls_verify=False,
+        **kwargs,
     ):
         """
         Executing 'oc' command
@@ -377,24 +380,25 @@ class OCP(object):
         # https://github.com/red-hat-storage/ocs-ci/issues/2312
         try:
             if self.data["items"][0]["kind"].lower() == "build" and (
-                    "jax-rs-build" in self.data["items"][0].get("metadata").get("name")
+                "jax-rs-build" in self.data["items"][0].get("metadata").get("name")
             ):
                 return resource_info[column_index - 1]
         except Exception:
             pass
 
         return resource_info[column_index]
+
     def wait_for_resource(
-            self,
-            condition,
-            resource_name="",
-            column="STATUS",
-            selector=None,
-            resource_count=0,
-            timeout=60,
-            sleep=3,
-            dont_allow_other_resources=False,
-            error_condition=None,
+        self,
+        condition,
+        resource_name="",
+        column="STATUS",
+        selector=None,
+        resource_count=0,
+        timeout=60,
+        sleep=3,
+        dont_allow_other_resources=False,
+        error_condition=None,
     ):
         """
         Wait for a resource to reach to a desired condition
@@ -451,9 +455,8 @@ class OCP(object):
 
         try:
             for sample in TimeoutSampler(
-                    timeout, sleep, self.get, resource_name, True, selector
+                timeout, sleep, self.get, resource_name, True, selector
             ):
-
                 # Only 1 resource expected to be returned
                 if resource_name:
                     retry = int(timeout / sleep if sleep else timeout / 1)
@@ -499,8 +502,8 @@ class OCP(object):
                                 in_condition.append(item)
                                 in_condition_len = len(in_condition)
                             if (
-                                    error_condition is not None
-                                    and status == error_condition
+                                error_condition is not None
+                                and status == error_condition
                             ):
                                 raise ResourceWrongStatusException(
                                     item_name,
@@ -520,8 +523,8 @@ class OCP(object):
                                     f"reached condition!"
                                 )
                                 if (
-                                        dont_allow_other_resources
-                                        and sample_len != in_condition_len
+                                    dont_allow_other_resources
+                                    and sample_len != in_condition_len
                                 ):
                                     log.info(
                                         f"There are {sample_len} resources in "

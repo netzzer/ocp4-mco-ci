@@ -6,6 +6,7 @@ from src.utility.exceptions import CommandFailed
 
 logger = logging.getLogger(__name__)
 
+
 def exec_cmd(
     cmd,
     timeout=600,
@@ -15,26 +16,26 @@ def exec_cmd(
     **kwargs,
 ):
     """
-        Run an arbitrary command locally
-        If the command is grep and matching pattern is not found, then this function
-        returns "command terminated with exit code 1" in stderr.
-        Args:
-            cmd (str): command to run
-            timeout (int): Timeout for the command, defaults to 600 seconds.
-            ignore_error (bool): True if ignore non zero return code and do not
-                raise the exception.
-            threading_lock (threading.Lock): threading.Lock object that is used
-                for handling concurrent oc commands
-            silent (bool): If True will silent errors from the server, default false
-        Raises:
-            CommandFailed: In case the command execution fails
-        Returns:
-            (CompletedProcess) A CompletedProcess object of the command that was executed
-            CompletedProcess attributes:
-            args: The list or str args passed to run().
-            returncode (str): The exit code of the process, negative for signals.
-            stdout     (str): The standard output (None if not captured).
-            stderr     (str): The standard error (None if not captured).
+    Run an arbitrary command locally
+    If the command is grep and matching pattern is not found, then this function
+    returns "command terminated with exit code 1" in stderr.
+    Args:
+        cmd (str): command to run
+        timeout (int): Timeout for the command, defaults to 600 seconds.
+        ignore_error (bool): True if ignore non zero return code and do not
+            raise the exception.
+        threading_lock (threading.Lock): threading.Lock object that is used
+            for handling concurrent oc commands
+        silent (bool): If True will silent errors from the server, default false
+    Raises:
+        CommandFailed: In case the command execution fails
+    Returns:
+        (CompletedProcess) A CompletedProcess object of the command that was executed
+        CompletedProcess attributes:
+        args: The list or str args passed to run().
+        returncode (str): The exit code of the process, negative for signals.
+        stdout     (str): The standard output (None if not captured).
+        stderr     (str): The standard error (None if not captured).
     """
 
     logger.info(f"Executing command: {cmd}")
@@ -66,13 +67,12 @@ def exec_cmd(
     logger.debug(f"Command return code: {completed_process.returncode}")
     if completed_process.returncode and not ignore_error:
         if (
-                "grep" in cmd
-                and b"command terminated with exit code 1" in completed_process.stderr
+            "grep" in cmd
+            and b"command terminated with exit code 1" in completed_process.stderr
         ):
             logger.info(f"No results found for grep command: {cmd}")
         else:
             raise CommandFailed(
-                f"Error during execution of command: {cmd}."
-                f"\nError is {stdout_err}"
+                f"Error during execution of command: {cmd}." f"\nError is {stdout_err}"
             )
     return completed_process
