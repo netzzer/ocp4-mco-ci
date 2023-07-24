@@ -263,6 +263,20 @@ def delete_file(file_name):
     os.remove(file_name)
 
 
+def delete_file_with_prefix(prefix):
+    """
+    Delete all files with prefix
+    Args:
+        prefix (str): Prefix to the files you want to delete
+    """
+    try:
+        for file in os.listdir("."):
+            if os.path.isfile(file) and file.startswith(prefix):
+                delete_file(file)
+    except FileNotFoundError:
+        pass
+
+
 def prepare_bin_dir(bin_dir=None):
     """
     Prepare bin directory for OpenShift client and installer

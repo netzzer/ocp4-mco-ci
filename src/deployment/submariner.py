@@ -13,7 +13,11 @@ from src.utility.cmd import exec_cmd
 from src.utility.nodes import get_typed_worker_nodes
 from src.utility.exceptions import CommandFailed, DRPrimaryNotFoundException
 from src.utility import constants
-from src.utility.utils import get_non_acm_cluster_config, get_kube_config_path
+from src.utility.utils import (
+    get_non_acm_cluster_config,
+    get_kube_config_path,
+    delete_file_with_prefix,
+)
 
 logger = logging.getLogger(__name__)
 iam = boto3.client("iam")
@@ -153,6 +157,7 @@ class Submariner(object):
         if self.source == "upstream":
             # This script puts the platform specific binary in ~/.local/bin
             # we need to move the subctl binary to ocs-ci/bin dir
+            downloader_prefix = "submariner_downloader_"
             try:
                 submarier_url = (
                     config.MULTICLUSTER["submariner_url"]
@@ -164,8 +169,9 @@ class Submariner(object):
                     "Failed to download the downloader script from submariner site"
                 )
                 raise
+            delete_file_with_prefix(downloader_prefix)
             tempf = tempfile.NamedTemporaryFile(
-                dir=".", mode="wb", prefix="submariner_downloader_", delete=False
+                dir=".", mode="wb", prefix=downloader_prefix, delete=False
             )
             tempf.write(resp.content)
 
@@ -218,7 +224,7 @@ class Submariner(object):
         # about the context with which we are performing the operations
         config.switch_ctx(self.designated_broker_cluster_index)
         logger.info(f"Switched context: {config.cluster_ctx.ENV_DATA['cluster_name']}")
-
+        delete_file_with_prefix("broker-info.subm")
         deploy_broker_cmd = "deploy-broker"
         try:
             run_subctl_cmd(deploy_broker_cmd)
