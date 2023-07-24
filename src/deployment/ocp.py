@@ -110,3 +110,4 @@ class OCPDeployment:
             )
         except CommandFailed as ex:
             logger.error("Unable to deploy ocp cluster.")
+            raise ex
