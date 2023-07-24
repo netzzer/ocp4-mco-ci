@@ -99,7 +99,7 @@ class GitopsDeployment(OperatorDeployment):
         templating.dump_data_to_temp_yaml(
             managedclustersetbinding_obj, managedclustersetbinding.name
         )
-        exec_cmd(f"oc create -f {managedclustersetbinding.name}")
+        exec_cmd(f"oc apply -f {managedclustersetbinding.name}")
 
         gitops_obj = ocp.OCP(
             resource_name=constants.GITOPS_CLUSTER_NAME,
