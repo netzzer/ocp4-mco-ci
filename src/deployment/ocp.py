@@ -96,7 +96,7 @@ class OCPDeployment:
             f.write(install_config_str)
 
     @staticmethod
-    @retry(CommandFailed, tries=6, delay=600, backoff=1)
+    @retry(CommandFailed, tries=3, delay=600, backoff=1)
     def deploy_ocp(installer_binary_path, cluster_path, log_cli_level="INFO"):
         # Do not access framework.config directly inside deploy_ocp, it is not thread safe
         try:
