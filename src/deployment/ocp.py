@@ -3,7 +3,6 @@ import logging
 import json
 import yaml
 
-from src.utility.retry import retry
 from src.framework import config
 from src.utility import utils
 from src.utility import constants
@@ -96,7 +95,6 @@ class OCPDeployment:
             f.write(install_config_str)
 
     @staticmethod
-    @retry(CommandFailed, tries=3, delay=600, backoff=1)
     def deploy_ocp(installer_binary_path, cluster_path, log_cli_level="INFO"):
         # Do not access framework.config directly inside deploy_ocp, it is not thread safe
         try:
@@ -110,4 +108,3 @@ class OCPDeployment:
             )
         except CommandFailed as ex:
             logger.error("Unable to deploy ocp cluster.")
-            raise ex
