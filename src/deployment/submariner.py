@@ -2,7 +2,6 @@ import logging
 
 import requests
 import tempfile
-import shutil
 import os
 import boto3
 import json
@@ -185,7 +184,7 @@ class Submariner(object):
 
             # Copy submariner from ~/.local/bin to ocs-ci/bin
             # ~/.local/bin is the default path selected by submariner script
-            shutil.copyfile(
+            os.symlink(
                 os.path.expanduser("~/.local/bin/subctl"),
                 os.path.join(config.RUN["bin_dir"], "subctl"),
             )
@@ -208,7 +207,7 @@ class Submariner(object):
                     join_cmd,
                 )
                 logger.info(
-                    f"Subctl join succeded for {cluster.ENV_DATA['cluster_name']}"
+                    f"Subctl join succeeded for {cluster.ENV_DATA['cluster_name']}"
                 )
             except CommandFailed:
                 logger.exception("Cluster failed to join")
