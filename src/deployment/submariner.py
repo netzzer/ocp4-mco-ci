@@ -184,10 +184,12 @@ class Submariner(object):
 
             # Copy submariner from ~/.local/bin to ocs-ci/bin
             # ~/.local/bin is the default path selected by submariner script
-            os.symlink(
-                os.path.expanduser("~/.local/bin/subctl"),
-                os.path.join(config.RUN["bin_dir"], "subctl"),
-            )
+            dest_path = os.path.join(config.RUN["bin_dir"], "subctl")
+            if not os.path.exists(dest_path):
+                os.symlink(
+                    os.path.expanduser("~/.local/bin/subctl"),
+                    dest_path,
+                )
 
     @retry(CommandFailed, tries=5, delay=60, backoff=1)
     def join_cluster(self, cluster):
