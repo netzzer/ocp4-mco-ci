@@ -1,10 +1,7 @@
-additionalTrustBundlePolicy: Proxyonly
 apiVersion: {{ api_version | default('v1') }}
 baseDomain: {{ base_domain | default('qe.rh-ocs.com') }}
 compute:
-  - architecture: amd64
-    hyperthreading: Enabled
-    name: worker
+  - name: worker
     platform:
       aws:
         type: {{ worker_instance_type | default('m5.4xlarge') }}
@@ -16,8 +13,6 @@ compute:
 {% endif %}
     replicas: {{ worker_replicas | default(3) }}
 controlPlane:
-  architecture: amd64
-  hyperthreading: Enabled
   name: master
   platform:
     aws:
@@ -36,8 +31,7 @@ networking:
   clusterNetwork:
     - cidr: {{ cluster_network_cidr | default('10.128.0.0/14') }}
       hostPrefix: {{ cluster_host_prefix | default(23) }}
-  machineNetwork:
-    - cidr: 10.0.0.0/16
+  machineCIDR: 10.0.0.0/16
   networkType: {{ network_type | default('OpenShiftSDN') }}
   serviceNetwork:
     - {{ service_network_cidr | default('172.30.0.0/16') }}
@@ -47,5 +41,4 @@ fips: {{ fips }}
 platform:
   aws:
     region: {{ region | default('us-east-2') }}
-publish: External
 pullSecret: ''
