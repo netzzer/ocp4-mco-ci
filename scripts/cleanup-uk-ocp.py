@@ -6,7 +6,7 @@ import os
 def get_suffix():
     nowtime = datetime.datetime.now()
     month = nowtime.strftime("%b").lower()
-    day = str(nowtime.day-1)
+    day = str(nowtime.day)
     return month + '-' + day
 
 def job(t):
