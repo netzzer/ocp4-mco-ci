@@ -2,6 +2,7 @@ import os
 import logging
 import json
 import yaml
+import shutil
 
 from src.utility.retry import retry
 from src.framework import config
@@ -89,8 +90,9 @@ class OCPDeployment:
         install_config_str = yaml.safe_dump(install_config_obj)
         install_config_path = os.path.join(self.cluster_path, "install-config.yaml")
         # create cluster directory
-        if not os.path.exists(self.cluster_path):
-            os.mkdir(self.cluster_path)
+        if os.path.exists(self.cluster_path):
+            shutil.rmtree(self.cluster_path)
+        os.mkdir(self.cluster_path)
         logger.info(f"Install directory: {self.cluster_path} is created successfully")
         with open(install_config_path, "w") as f:
             f.write(install_config_str)
