@@ -16,6 +16,7 @@ from src.utility.utils import (
     get_non_acm_cluster_config,
     get_kube_config_path,
     delete_file_with_prefix,
+    get_cluster_metadata
 )
 
 logger = logging.getLogger(__name__)
@@ -42,14 +43,7 @@ def get_api_username(cluster_name):
 
 
 def get_infra_id(cluster_path):
-    meta_data_json_path = f"{cluster_path}/metadata.json"
-    try:
-        f = open(meta_data_json_path, "r")
-        meta_data_json = json.load(f)
-        return meta_data_json["infraID"]
-    except IOError as error:
-        logger.error(f"Unable to find infra id {meta_data_json_path}")
-        raise error
+    get_cluster_metadata(cluster_path)["infraID"]
 
 
 def get_aws_user_id():

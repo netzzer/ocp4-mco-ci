@@ -14,10 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 def destroy_ocp(
-    installer_binary_path, cluster_name, cluster_path, log_cli_level="INFO"
+    installer_binary_path, cluster_path, log_cli_level="INFO", is_managed_cluster=False
 ):
     try:
-        remove_aws_policy(cluster_name)
+        cluster_name = utils.get_cluster_metadata(cluster_path)['clusterName']
+        if is_managed_cluster:
+            remove_aws_policy(cluster_name)
         utils.exec_cmd(
             cmd="{bin_dir} destroy cluster --dir {cluster_dir} --log-level={log_level}".format(
                 bin_dir=installer_binary_path,
@@ -32,13 +34,26 @@ def destroy_ocp(
 
 def cluster_cleanup():
     parser = argparse.ArgumentParser(description="Cleanup AWS Resource")
-    parser.add_argument("--cluster-name", required=True, help="cluster name to destroy")
     parser.add_argument(
-        "--cluster-path", required=True, help="cluster install directory path"
+        "--is-managed-cluster", required=False, help="whether the cluster is managed by ACM or not"
+    )
+    parser.add_argument(
+        "--cluster-paths", nargs='+', required=True, help="cluster install directory paths with space"
     )
     args, _ = parser.parse_known_args()
-    cluster_name = args.cluster_name
-    cluster_path = args.cluster_path
+    cluster_paths = args.cluster_paths
+    is_managed_cluster = args.is_managed_cluster
     bin_dir = os.path.expanduser(config.RUN["bin_dir"])
     oc_bin = os.path.join(bin_dir, "openshift-install")
-    destroy_ocp(oc_bin, cluster_name, cluster_path)
+    processes = []
+    for cluster_path in cluster_paths:
+        p = mp.Process(
+            target=destroy_ocp,
+            args=(oc_bin, cluster_path, is_managed_cluster)
+        )
+        processes.append(p)
+    if len(processes) > 0:
+        [proc.start() for proc in processes]
+        # complete the processes
+        for proc in processes:
+            proc.join()

@@ -712,3 +712,13 @@ def wait_for_machineconfigpool_status(node_type, timeout=900, skip_tls_verify=Fa
             timeout=timeout,
             sleep=5,
         )
+
+def get_cluster_metadata(cluster_path):
+    meta_data_json_path = f"{cluster_path}/metadata.json"
+    try:
+        f = open(meta_data_json_path, "r")
+        meta_data_json = json.load(f)
+        return meta_data_json
+    except IOError as error:
+        logger.error(f"Unable to find infra id {meta_data_json_path}")
+        raise error
