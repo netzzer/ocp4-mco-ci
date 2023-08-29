@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 def destroy_ocp(
-    installer_binary_path, cluster_path, log_cli_level="INFO", is_managed_cluster=False
+    installer_binary_path, cluster_path, is_managed_cluster="False", log_cli_level="INFO"
 ):
     try:
         cluster_name = utils.get_cluster_metadata(cluster_path)['clusterName']
-        if is_managed_cluster:
+        if is_managed_cluster == "True":
             remove_aws_policy(cluster_name)
         utils.exec_cmd(
             cmd="{bin_dir} destroy cluster --dir {cluster_dir} --log-level={log_level}".format(
