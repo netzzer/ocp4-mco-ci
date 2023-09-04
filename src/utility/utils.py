@@ -713,6 +713,7 @@ def wait_for_machineconfigpool_status(node_type, timeout=900, skip_tls_verify=Fa
             sleep=5,
         )
 
+
 def get_cluster_metadata(cluster_path):
     meta_data_json_path = f"{cluster_path}/metadata.json"
     try:

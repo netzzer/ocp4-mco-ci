@@ -14,10 +14,13 @@ logger = logging.getLogger(__name__)
 
 
 def destroy_ocp(
-    installer_binary_path, cluster_path, is_managed_cluster="False", log_cli_level="INFO"
+    installer_binary_path,
+    cluster_path,
+    is_managed_cluster="False",
+    log_cli_level="INFO",
 ):
     try:
-        cluster_name = utils.get_cluster_metadata(cluster_path)['clusterName']
+        cluster_name = utils.get_cluster_metadata(cluster_path)["clusterName"]
         if is_managed_cluster == "True":
             remove_aws_policy(cluster_name)
         utils.exec_cmd(
@@ -35,10 +38,15 @@ def destroy_ocp(
 def cluster_cleanup():
     parser = argparse.ArgumentParser(description="Cleanup AWS Resource")
     parser.add_argument(
-        "--is-managed-cluster", required=False, help="whether the cluster is managed by ACM or not"
+        "--is-managed-cluster",
+        required=False,
+        help="whether the cluster is managed by ACM or not",
     )
     parser.add_argument(
-        "--cluster-paths", nargs='+', required=True, help="cluster install directory paths with space"
+        "--cluster-paths",
+        nargs="+",
+        required=True,
+        help="cluster install directory paths with space",
     )
     args, _ = parser.parse_known_args()
     cluster_paths = args.cluster_paths
@@ -48,8 +56,7 @@ def cluster_cleanup():
     processes = []
     for cluster_path in cluster_paths:
         p = mp.Process(
-            target=destroy_ocp,
-            args=(oc_bin, cluster_path, is_managed_cluster)
+            target=destroy_ocp, args=(oc_bin, cluster_path, is_managed_cluster)
         )
         processes.append(p)
     if len(processes) > 0:

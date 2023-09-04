@@ -16,7 +16,7 @@ from src.utility.utils import (
     get_non_acm_cluster_config,
     get_kube_config_path,
     delete_file_with_prefix,
-    get_cluster_metadata
+    get_cluster_metadata,
 )
 
 logger = logging.getLogger(__name__)
@@ -230,7 +230,7 @@ class Submariner(object):
     @retry(CommandFailed, tries=5, delay=30, backoff=1)
     def prepare_aws_cloud(self, cluster):
         infra_id = get_infra_id(cluster.ENV_DATA["cluster_path"])
-        prepare_cmd = f'cloud prepare aws --infra-id {infra_id}  --region {cluster.ENV_DATA["region"]}'
+        prepare_cmd = f'cloud prepare aws --ocp-metadata {cluster.ENV_DATA["cluster_path"]}/metadata.json  --region {cluster.ENV_DATA["region"]}'
         run_subctl_cmd(prepare_cmd)
 
     @retry(CommandFailed, tries=5, delay=60, backoff=1)
