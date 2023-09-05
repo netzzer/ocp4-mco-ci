@@ -26,6 +26,7 @@ class OCPDeployment:
         # create config
         self.create_config()
 
+    @retry(CommandFailed, tries=5, delay=60, backoff=1)
     def download_installer(self):
         return utils.download_installer(
             version=config.DEPLOYMENT["installer_version"],
@@ -98,7 +99,6 @@ class OCPDeployment:
             f.write(install_config_str)
 
     @staticmethod
-    @retry(CommandFailed, tries=4, delay=30, backoff=1)
     def deploy_ocp(installer_binary_path, cluster_path, log_cli_level="INFO"):
         # Do not access framework.config directly inside deploy_ocp, it is not thread safe
         try:
@@ -112,4 +112,3 @@ class OCPDeployment:
             )
         except CommandFailed as ex:
             logger.error("Unable to deploy ocp cluster.")
-            raise ex
