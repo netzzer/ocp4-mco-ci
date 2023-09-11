@@ -8,6 +8,7 @@ DEPLOYMENT:
 ENV_DATA:
   base_domain: makestoragegreatagain.com
   region: 'us-east-2'
+  worker_instance_type: 'm5.4xlarge'
   skip_ocp_deployment: false
   skip_ocs_deployment: false
   skip_ocs_cluster_creation: true
