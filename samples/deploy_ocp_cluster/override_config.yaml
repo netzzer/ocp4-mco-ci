@@ -6,6 +6,8 @@ DEPLOYMENT:
   ssh_key: "~/.ssh/id_rsa.pub"
   ocp_mirror_url: "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp-dev-preview"
 ENV_DATA:
+  base_domain: makestoragegreatagain.com
+  region: 'us-east-2'
   skip_ocp_deployment: false
   skip_ocs_deployment: false
   skip_ocs_cluster_creation: true
