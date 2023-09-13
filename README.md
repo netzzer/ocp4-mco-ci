@@ -4,7 +4,7 @@
 
 ### Secrets
 1. `pull-secret` - Keep your pull secret under `data/pull-secret` file. Create `data` directory manually if not exists.
-2. `auth` - Keep your quay token under `data/auth` to install ACM pre-release downstream build.
+2. `auth.yaml` - Keep your quay token under `data/auth.yaml` to install ACM pre-release downstream build.
     In order to get a QUAY_TOKEN, go to your quay.io "Account Settings" page by selecting your username/icon in the top 
     right corner of the page, then "Generate Encrypted Password".  Choose "Kubernetes Secret" and copy just secret text 
     that follows .dockerconfigjson:. 
