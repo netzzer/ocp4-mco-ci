@@ -444,11 +444,12 @@ def get_ocp_version(seperator=None):
     version = ""
     try:
         char = seperator if seperator else "."
+        prefixes = ("latest", "candidate", "fast", "stable")
         if config.ENV_DATA.get("skip_ocp_deployment"):
             raw_version = json.loads(exec_cmd("oc version -o json"))["openshiftVersion"]
         else:
             raw_version = config.DEPLOYMENT["installer_version"]
-        if raw_version.startswith("latest"):
+        if raw_version.startswith(prefixes):
             version = raw_version.split("-")[1]
         else:
             version = Version.coerce(raw_version)
