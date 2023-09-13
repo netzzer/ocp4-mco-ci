@@ -19,4 +19,4 @@ ENV_DATA:
   ocs_version: '4.14'
 REPORTING:
   email:
-    skip_notification: false
+    skip_notification: true
