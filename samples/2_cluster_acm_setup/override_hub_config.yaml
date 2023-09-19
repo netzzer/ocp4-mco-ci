@@ -22,17 +22,18 @@ ENV_DATA:
 MULTICLUSTER:
   acm_cluster: true
   primary_cluster: true
-  configure_submariner: true
+  configure_submariner: false
   skip_mco_deployment: true
   enable_mco_plugin: false
   deploy_acm_hub_cluster: true
   import_managed_clusters: true
   exchange_ssl_certificate: true
+  skip_gitops_deployment: false
   # comment this out for acm unreleased version
   # acm_hub_channel: 'release-2.7'
   # enable this for ACM un-released build
   acm_hub_unreleased: true
-  acm_unreleased_image: '2.9.0-DOWNSTREAM-2023-09-01-19-47-09'
+  acm_unreleased_image: '2.9.0-DOWNSTREAM-2023-09-19-01-38-17'
 REPORTING:
   email:
     skip_notification: true
