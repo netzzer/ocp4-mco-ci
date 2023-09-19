@@ -4,7 +4,6 @@ import requests
 import tempfile
 import os
 import boto3
-import json
 from src.utility.retry import retry
 from botocore.exceptions import ClientError
 from src.framework import config
@@ -196,7 +195,7 @@ class Submariner(object):
             join_cmd = (
                 f"join --kubeconfig {get_kube_config_path(cluster.ENV_DATA['cluster_path'])} "
                 f"{config.MULTICLUSTER['submariner_info_file']} "
-                f"--clusterid c{self.cluster_seq} --natt=false"
+                f"--clusterid c{self.cluster_seq}"
             )
             try:
                 run_subctl_cmd(
@@ -224,7 +223,7 @@ class Submariner(object):
         try:
             run_subctl_cmd(deploy_broker_cmd)
         except CommandFailed:
-            logger.exception("Failed to deploy submariner broker")
+            logger.error("Failed to deploy submariner broker")
             raise
 
     @retry(CommandFailed, tries=5, delay=30, backoff=1)
