@@ -157,7 +157,7 @@ class Submariner(object):
                 )
                 resp = requests.get(submarier_url)
             except requests.ConnectionError:
-                logger.exception(
+                logger.error(
                     "Failed to download the downloader script from submariner site"
                 )
                 raise
@@ -197,17 +197,10 @@ class Submariner(object):
                 f"{config.MULTICLUSTER['submariner_info_file']} "
                 f"--clusterid c{self.cluster_seq}"
             )
-            try:
-                run_subctl_cmd(
-                    join_cmd,
-                )
-                logger.info(
-                    f"Subctl join succeeded for {cluster.ENV_DATA['cluster_name']}"
-                )
-            except CommandFailed:
-                logger.exception("Cluster failed to join")
-                raise
-
+            run_subctl_cmd(
+                join_cmd,
+            )
+            logger.info(f"Subctl join succeeded for {cluster.ENV_DATA['cluster_name']}")
             self.cluster_seq = self.cluster_seq + 1
             self.dr_only_list.append(cluster_index)
 
@@ -220,11 +213,7 @@ class Submariner(object):
         logger.info(f"Switched context: {config.cluster_ctx.ENV_DATA['cluster_name']}")
         delete_file_with_prefix("broker-info.subm")
         deploy_broker_cmd = "deploy-broker"
-        try:
-            run_subctl_cmd(deploy_broker_cmd)
-        except CommandFailed:
-            logger.error("Failed to deploy submariner broker")
-            raise
+        run_subctl_cmd(deploy_broker_cmd)
 
     @retry(CommandFailed, tries=5, delay=30, backoff=1)
     def prepare_aws_cloud(self, cluster):
@@ -239,11 +228,7 @@ class Submariner(object):
                 config.clusters[i].ENV_DATA["cluster_path"]
             )
             connect_check = f"show connections --kubeconfig {kube_config_path}"
-            try:
-                run_subctl_cmd(connect_check)
-            except CommandFailed:
-                logger.error("Submariner verification has issues")
-                raise
+            run_subctl_cmd(connect_check)
 
     def submariner_configure_upstream(self):
         """
@@ -264,7 +249,7 @@ class Submariner(object):
                 self.prepare_aws_cloud(cluster)
                 self.join_cluster(cluster)
             except CommandFailed:
-                logger.exception("Unable to prepare aws cloud for submariner")
+                logger.error("Unable to prepare aws cloud for submariner")
                 raise
         config.switch_ctx(restore_index)
         # verify command throws error
