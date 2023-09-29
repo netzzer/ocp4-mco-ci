@@ -236,8 +236,7 @@ class Deployment(object):
                 ):
                     if framework.config.MULTICLUSTER["exchange_ssl_certificate"]:
                         ssl_certificate = SSLCertificate()
-                        managed_clusters = get_non_acm_cluster_config(True)
-                        for cluster in managed_clusters:
+                        for cluster in framework.config.clusters:
                             framework.config.switch_ctx(
                                 cluster.MULTICLUSTER["multicluster_index"]
                             )
@@ -245,7 +244,7 @@ class Deployment(object):
                             ssl_certificate.get_certificate()
                         ssl_certificate.get_certificate_file_path()
                         log.warning(ssl_certificate.ssl_certificate_path)
-                        for cluster in managed_clusters:
+                        for cluster in framework.config.clusters:
                             framework.config.switch_ctx(
                                 cluster.MULTICLUSTER["multicluster_index"]
                             )
