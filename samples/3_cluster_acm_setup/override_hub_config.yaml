@@ -7,21 +7,21 @@ DEPLOYMENT:
   ocp_mirror_url: 'https://mirror.openshift.com/pub/openshift-v4/clients/ocp/'
 ENV_DATA:
   base_domain: 'makestoragegreatagain.com'
-  region: 'us-west-2'
-  service_network_cidr: '172.31.0.0/16'
-  cluster_network_cidr: '10.132.0.0/14'
-  master_instance_type: 'm5.xlarge'
-  worker_instance_type: 'm5.2xlarge'
+  region: 'us-east-2'
+  master_instance_type: 'm5.2xlarge'
+#  worker_instance_type: 'm5.2xlarge'
+  master_replicas: 3
+  worker_replicas: 0
   skip_ocp_deployment: false
-  skip_ocs_deployment: false
-  skip_ocs_cluster_creation: false
-  enable_ocs_plugin: true
+  skip_ocs_deployment: true
+  skip_ocs_cluster_creation: true
+  enable_ocs_plugin: false
   ocs_registry_image: 'quay.io/rhceph-dev/ocs-registry:latest-stable-4.14.0'
   ocs_csv_channel: 'stable-4.14'
   ocs_version: '4.14'
 MULTICLUSTER:
   acm_cluster: true
-  primary_cluster: true
+  primary_cluster: false
   configure_submariner: false
   skip_mco_deployment: true
   enable_mco_plugin: false
