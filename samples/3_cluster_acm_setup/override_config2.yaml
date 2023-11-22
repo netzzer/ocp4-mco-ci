@@ -1,8 +1,8 @@
 RUN:
-  client_version: 'candidate-4.14'
+  client_version: 'stable-4.14'
 DEPLOYMENT:
   force_download_installer: true
-  installer_version : 'candidate-4.14'
+  installer_version : 'stable-4.14'
   ssh_key: '~/.ssh/id_rsa.pub'
   ocp_mirror_url: 'https://mirror.openshift.com/pub/openshift-v4/clients/ocp/'
 ENV_DATA:
@@ -16,7 +16,7 @@ ENV_DATA:
   skip_ocs_deployment: false
   skip_ocs_cluster_creation: false
   enable_ocs_plugin: true
-  ocs_registry_image: 'quay.io/rhceph-dev/ocs-registry:latest-stable-4.14.0'
+  ocs_registry_image: 'quay.io/rhceph-dev/ocs-registry:latest-stable-4.14.1'
   ocs_csv_channel: 'stable-4.14'
   ocs_version: '4.14'
 REPORTING:

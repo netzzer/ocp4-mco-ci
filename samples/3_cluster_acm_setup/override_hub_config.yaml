@@ -1,8 +1,8 @@
 RUN:
-  client_version: 'candidate-4.14'
+  client_version: 'stable-4.14'
 DEPLOYMENT:
   force_download_installer: true
-  installer_version : 'candidate-4.14'
+  installer_version : 'stable-4.14'
   ssh_key: '~/.ssh/id_rsa.pub'
   ocp_mirror_url: 'https://mirror.openshift.com/pub/openshift-v4/clients/ocp/'
 ENV_DATA:
@@ -16,15 +16,15 @@ ENV_DATA:
   skip_ocs_deployment: true
   skip_ocs_cluster_creation: true
   enable_ocs_plugin: false
-  ocs_registry_image: 'quay.io/rhceph-dev/ocs-registry:latest-stable-4.14.0'
+  ocs_registry_image: 'quay.io/rhceph-dev/ocs-registry:latest-stable-4.14.1'
   ocs_csv_channel: 'stable-4.14'
   ocs_version: '4.14'
 MULTICLUSTER:
   acm_cluster: true
   primary_cluster: false
   configure_submariner: false
-  skip_mco_deployment: true
-  enable_mco_plugin: false
+  skip_mco_deployment: false
+  enable_mco_plugin: true
   deploy_acm_hub_cluster: true
   import_managed_clusters: true
   exchange_ssl_certificate: true
@@ -33,7 +33,7 @@ MULTICLUSTER:
   # acm_hub_channel: 'release-2.7'
   # enable this for ACM un-released build
   acm_hub_unreleased: true
-  acm_unreleased_image: '2.9.0-DOWNSTREAM-2023-09-27-22-12-46'
+  acm_unreleased_image: '2.9.0-DOWNSTREAM-2023-11-14-18-06-19'
 REPORTING:
   email:
     skip_notification: true
